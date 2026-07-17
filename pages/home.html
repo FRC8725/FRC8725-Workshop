@@ -1,0 +1,9 @@
+<div class="page-head"><div><h1 class="page-title">培訓室總覽</h1><p class="page-sub">點擊平面圖上的區域查看內容，或使用搜尋快速定位工具與材料。</p></div><button class="btn btn-primary" id="add-item-btn">＋ 新增物品</button></div>
+<div class="home-layout">
+  <aside class="sidebar">
+    <div class="card"><h3 class="card-title">搜尋</h3><div class="search-box"><span class="ico" aria-hidden="true">⌕</span><input id="global-search" type="search" placeholder="名稱、標籤、說明、位置…" aria-label="全域搜尋" autocomplete="off"></div><div class="filter-row" style="margin-top:12px" role="group" aria-label="類型篩選"><button class="filter-btn active" data-filter="all">全部</button><button class="filter-btn" data-filter="tool">工具</button><button class="filter-btn" data-filter="material">材料</button><button class="filter-btn" data-filter="low">低存量</button></div></div>
+    <div class="card results-card"><div class="results-header"><h3 class="card-title">搜尋結果 <span class="result-count" id="result-count">0</span></h3><div id="search-view-switcher"></div></div><div class="result-list" id="result-list"><div class="state-block"><div class="spinner"></div>載入中…</div></div></div>
+  </aside>
+  <section class="card map-panel" aria-label="培訓室平面圖"><h3 class="card-title">培訓室平面圖</h3><div id="map-status"></div><div class="workshop-map-wrapper"><div class="workshop-map"><img src="images/workshop-floor-plan.png" alt="培訓室平面圖" id="workshop-map-image"><div id="map-hotspots"></div></div></div><div class="map-legend"><span class="legend-item"><span class="legend-dot" style="background:var(--cffy-theme-primary-a20)"></span> 可點擊區域</span></div></section>
+  <aside class="summary-panel"><div class="card"><h3 class="card-title">狀態摘要</h3><div id="summary-stats"><div class="spinner"></div></div></div></aside>
+</div>

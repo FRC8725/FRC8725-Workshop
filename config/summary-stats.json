@@ -1,0 +1,46 @@
+{
+  "stats": [
+    {
+      "id": "all-items",
+      "label": "物品總數",
+      "enabled": true,
+      "color": "#e29a8a",
+      "filter": {}
+    },
+    {
+      "id": "tools",
+      "label": "工具",
+      "enabled": true,
+      "color": "#ffffff",
+      "filter": { "category": "tool" }
+    },
+    {
+      "id": "materials",
+      "label": "材料",
+      "enabled": true,
+      "color": "#ffffff",
+      "filter": { "category": "material" }
+    },
+    {
+      "id": "tools-in-use",
+      "label": "使用中工具",
+      "enabled": true,
+      "color": "#ffbc5e",
+      "filter": { "category": "tool", "status": "in-use" }
+    },
+    {
+      "id": "wishlist",
+      "label": "願望清單",
+      "enabled": true,
+      "color": "#ffffff",
+      "filter": { "category": "tool", "status": "wishlist" }
+    },
+    {
+      "id": "low-stock",
+      "label": "低存量／缺貨",
+      "enabled": true,
+      "color": "#ff8080",
+      "filter": { "category": "material", "stock": ["low", "out"] }
+    }
+  ]
+}

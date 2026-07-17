@@ -16,6 +16,7 @@
 .stat.accent .stat-val { color: var(--cffy-theme-primary-a30); }
 .stat.warn .stat-val { color: var(--cffy-theme-warning-a0); }
 .stat.danger .stat-val { color: var(--cffy-theme-danger-a0); }
+.stat-configured .stat-val { color: var(--stat-color, var(--text)); }
 
 /* ---------- Map ---------- */
 .map-panel {

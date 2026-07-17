@@ -63,7 +63,7 @@ img { max-width: 100%; }
 
 /* ---------- Sidebar nav ---------- */
 .side-nav {
-  width: 220px;
+  width: 260px;
   flex-shrink: 0;
   background: var(--nav-bg);
   border-right: 1px solid var(--border-soft);
@@ -115,9 +115,27 @@ img { max-width: 100%; }
   width: 18px; height: 18px;
   display: inline-flex; align-items: center; justify-content: center;
 }
-.ico-svg { display: block; }
+.nav-group { display: contents; }
+.ico-svg {
+  display: inline-block;
+  flex: 0 0 auto;
+  background-color: currentColor;
+  -webkit-mask: var(--icon-url) center / contain no-repeat;
+  mask: var(--icon-url) center / contain no-repeat;
+}
 
 .nav-spacer { flex: 1; }
+.nav-account { display: grid; grid-template-columns: 40px minmax(0, 1fr); gap: 10px; align-items: center; min-width: 0; margin-top: 8px; }
+.nav-avatar { width: 34px; height: 34px; border-radius: 50%; object-fit: cover; background: var(--card-bg-alt); }
+.nav-avatar, .nav-avatar-fallback { grid-column: 1; grid-row: 1; }
+.nav-avatar-fallback { display: grid; place-items: center; color: var(--text); font-weight: 700; }
+.nav-avatar[hidden], .nav-avatar-fallback[hidden] { display: none !important; }
+.nav-user-details { display: flex; flex-direction: column; min-width: 0; font-size: 11px; }
+.nav-user-details { grid-column: 2; grid-row: 1; }
+.nav-user-details strong, .nav-user-details span { white-space: normal; overflow-wrap: break-word; word-break: normal; }
+.nav-user-details span { color: var(--text-muted); }
+.nav-user-details .badge { align-self: flex-start; width: auto; white-space: nowrap; overflow-wrap: normal; }
+.nav-account .btn { grid-column: 1 / -1; justify-content: center; }
 
 /* ---------- Main content ---------- */
 .main {
@@ -149,6 +167,7 @@ img { max-width: 100%; }
 /* ---------- Responsive ---------- */
 @media (max-width: 1200px) {
   .home-layout { grid-template-columns: 340px minmax(0, 1fr); }
+  .home-layout .sidebar { position: static; }
   .home-layout .summary-panel {
     grid-column: 1 / -1;
     position: static;
@@ -169,6 +188,9 @@ img { max-width: 100%; }
   .brand { margin-bottom: 0; margin-right: 12px; }
   .nav-link { white-space: nowrap; }
   .nav-spacer { display: none; }
+  .nav-account { margin: 0 0 0 auto; min-width: 240px; }
+  .nav-user-details { max-width: none; }
+  .nav-account .btn { white-space: nowrap; }
   .main { padding: 18px 16px 48px; }
   .home-layout { grid-template-columns: 1fr; }
   .sidebar, .summary-panel { position: static; }

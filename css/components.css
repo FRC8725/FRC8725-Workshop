@@ -254,7 +254,7 @@ input:focus, select:focus, textarea:focus {
 }
 @keyframes shimmer { 0% { background-position: 100% 0; } 100% { background-position: -100% 0; } }
 
-/* ---------- Banner (demo mode) ---------- */
+/* ---------- Status banners ---------- */
 .banner {
   display: flex; align-items: center; gap: 10px;
   padding: 10px 14px;
