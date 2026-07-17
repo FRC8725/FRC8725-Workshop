@@ -39,6 +39,12 @@ export async function mountPage({ params, routeTo }) {
 
   if (!storageId) { renderError("未指定櫃子", "網址缺少 id 參數。"); return; }
 
+  // section/item are transient navigation hints. Remove them without triggering
+  // another route render so later add/edit refreshes cannot reuse the old result.
+  if (state.highlight.section || state.highlight.item) {
+    history.replaceState(null, "", `#/storage?id=${encodeURIComponent(storageId)}`);
+  }
+
   try {
     const [area, allAreas, structures] = await Promise.all([
       getAreaById(storageId),
@@ -244,6 +250,8 @@ async function handleDelete(item) {
 function maybeHighlight() {
   const { section, item } = state.highlight;
   if (!section && !item) return;
+  // Consume the navigation highlight before any later data refresh can run it again.
+  state.highlight = { section: null, item: null };
   // setTimeout (not rAF) so it still runs when the tab is not visible.
   setTimeout(() => {
     let target = null;
