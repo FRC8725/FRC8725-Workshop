@@ -1,6 +1,7 @@
 // js/map-renderer.js — renders the interactive floor-plan hotspots
 
 import { el, isLowStock } from "../utils/utils.js";
+import { storageTypeLabel } from "./labels.js";
 
 /**
  * Compute per-area summary from item list.
@@ -117,12 +118,6 @@ function ensureTooltip() {
   return tooltipEl;
 }
 
-const TYPE_LABELS = {
-  cabinet: "工具櫃", "tool-cart": "工具車", "dry-box": "防潮箱",
-  shelf: "層架", pegboard: "洞洞板", machine: "機台", "quick-box": "零件快取盒",
-  table: "桌子",
-};
-
 function showTooltip(tt, area, s, e) {
   tt.innerHTML = `
     <div class="tt-name"></div>
@@ -134,7 +129,7 @@ function showTooltip(tt, area, s, e) {
   `;
   tt.querySelector(".tt-name").textContent = area.name;
   const vals = tt.querySelectorAll(".tt-row span:last-child");
-  vals[0].textContent = TYPE_LABELS[area.type] || area.type;
+  vals[0].textContent = storageTypeLabel(area.type);
   vals[1].textContent = s.total;
   vals[2].textContent = s.toolsAvailable;
   vals[3].textContent = s.toolsInUse;

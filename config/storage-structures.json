@@ -13,6 +13,22 @@
       ]
     },
     {
+      "id": "tool-cart-6",
+      "name": "工具車",
+      "layoutType": "grid",
+      "columns": 1,
+      "rows": 7,
+      "sections": [
+        { "id": "c0", "name": "頂部", "row": 1, "column": 1, "rowSpan": 1, "columnSpan": 1, "type": "top-surface" },
+        { "id": "c1", "name": "第 1 層", "row": 2, "column": 1, "rowSpan": 1, "columnSpan": 1, "type": "drawer" },
+        { "id": "c2", "name": "第 2 層", "row": 3, "column": 1, "rowSpan": 1, "columnSpan": 1, "type": "drawer" },
+        { "id": "c3", "name": "第 3 層", "row": 4, "column": 1, "rowSpan": 1, "columnSpan": 1, "type": "drawer" },
+        { "id": "c4", "name": "第 4 層", "row": 5, "column": 1, "rowSpan": 1, "columnSpan": 1, "type": "drawer" },
+        { "id": "c5", "name": "第 5 層", "row": 6, "column": 1, "rowSpan": 1, "columnSpan": 1, "type": "drawer" },
+        { "id": "c6", "name": "第 6 層", "row": 7, "column": 1, "rowSpan": 1, "columnSpan": 1, "type": "drawer" }
+      ]
+    },
+    {
       "id": "dry-box",
       "name": "防潮箱",
       "layoutType": "grid",

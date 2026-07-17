@@ -1,7 +1,7 @@
 // js/pages/storage.js — cabinet detail page
 
 import { $, el, escapeHtml, icon, formatLocation, isLowStock, isOutOfStock } from "../utils/utils.js";
-import { initLabels } from "../ui/labels.js";
+import { initLabels, storageTypeLabel } from "../ui/labels.js";
 import {
   getAreaById, getStructureById, getItemsByStorageId,
   getWorkshopMap, getStructures, deleteItem,
@@ -22,11 +22,6 @@ let state = {
   query: "",
   viewMode: getViewMode("storage"),
   highlight: { section: null, item: null },
-};
-
-const TYPE_LABELS = {
-  cabinet: "工具櫃", "tool-cart": "工具車", "dry-box": "防潮箱",
-  shelf: "層架", pegboard: "洞洞板", machine: "機台", "quick-box": "零件快取盒",
 };
 
 let navigate = null;
@@ -87,7 +82,7 @@ function renderHead() {
       </div>
       <h1 class="page-title" style="margin-top:8px">${escapeHtml(area.name)}</h1>
       <div class="storage-meta">
-        <span class="badge badge-info badge-plain">${escapeHtml(TYPE_LABELS[area.type] || area.type)}</span>
+        <span class="badge badge-info badge-plain">${escapeHtml(storageTypeLabel(area.type))}</span>
         ${structure ? `<span class="badge badge-muted badge-plain">${escapeHtml(structure.name)}</span>` : ""}
       </div>
       <p class="storage-desc">${escapeHtml(area.description || `${area.name} 的存放內容。`)}</p>

@@ -20,17 +20,20 @@ const FALLBACK = {
     { name: "tool", color: "#87d1ff", label: "工具" },
     { name: "material", color: "#e29a8a", label: "材料" },
   ],
+  storageTypes: [],
   tags: [],
 };
 
 let cache = null;
 let statusMap = new Map();
 let categoryMap = new Map();
+let storageTypeMap = new Map();
 let tagMap = new Map();
 
 function buildMaps() {
   statusMap = new Map((cache.statuses || []).map((d) => [d.name, d]));
   categoryMap = new Map((cache.categories || []).map((d) => [d.name, d]));
+  storageTypeMap = new Map((cache.storageTypes || []).map((d) => [d.name, d]));
   tagMap = new Map((cache.tags || []).map((d) => [d.name, d]));
 }
 
@@ -41,6 +44,7 @@ export async function initLabels() {
     cache = await loadJSON(LABELS_PATH);
     if (!cache.statuses) cache.statuses = FALLBACK.statuses;
     if (!cache.categories) cache.categories = FALLBACK.categories;
+    if (!cache.storageTypes) cache.storageTypes = [];
     if (!cache.tags) cache.tags = [];
   } catch (err) {
     console.warn("labels.json 載入失敗，使用後備定義。", err);
@@ -61,6 +65,9 @@ export function statusDef(name) {
 }
 export function categoryDef(name) {
   return categoryMap.get(name) || { name, color: "#7d7d7d", label: name || "" };
+}
+export function storageTypeLabel(name) {
+  return storageTypeMap.get(name)?.label || name || "";
 }
 export function tagDef(name) {
   return tagMap.get(name) || { name, color: "#7d7d7d", label: name };
