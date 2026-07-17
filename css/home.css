@@ -1,0 +1,206 @@
+/* ---------- Summary stat tiles ---------- */
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin-bottom: 8px;
+}
+.stat {
+  background: var(--card-bg-alt);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius);
+  padding: 14px;
+}
+.stat-val { font-size: 24px; font-weight: 800; line-height: 1; }
+.stat-label { font-size: 12px; color: var(--text-muted); margin-top: 6px; }
+.stat.accent .stat-val { color: var(--cffy-theme-primary-a30); }
+.stat.warn .stat-val { color: var(--cffy-theme-warning-a0); }
+.stat.danger .stat-val { color: var(--cffy-theme-danger-a0); }
+
+/* ---------- Map ---------- */
+.map-panel {
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+.workshop-map-wrapper {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius);
+  background: var(--cffy-theme-surface-a0);
+  padding: 10px;
+}
+/* .workshop-map shrink-wraps the image so % hotspots always match the rendered size.
+   Its max-height is set from JS (fitMap) so the whole plan fits the viewport on desktop. */
+.workshop-map {
+  position: relative;
+  width: fit-content;
+  max-width: 100%;
+  margin: 0 auto;
+}
+.workshop-map img {
+  display: block;
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  object-fit: contain;
+  border-radius: var(--radius-sm);
+}
+#map-hotspots { position: absolute; inset: 0; }
+
+.map-hotspot {
+  position: absolute;
+  background: rgba(198, 84, 61, 0.0);
+  border: 2px solid rgba(198, 84, 61, 0.0);
+  border-radius: 4px;
+  cursor: pointer;
+  padding: 0;
+  transition: background 0.12s ease, border-color 0.12s ease, box-shadow 0.12s ease;
+}
+/* One consistent highlight for: direct hover, keyboard focus, and search-result hover/focus. */
+.map-hotspot:hover,
+.map-hotspot.is-hovered,
+.map-hotspot.is-search-highlighted,
+.map-hotspot:focus-visible {
+  background: rgba(198, 84, 61, 0.28);
+  border-color: var(--cffy-theme-primary-a20);
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(232, 171, 157, 0.4);
+}
+.map-hotspot.flash {
+  animation: hotspot-flash 1s ease 3;
+  background: rgba(255, 188, 94, 0.35);
+  border-color: var(--cffy-theme-warning-a0);
+}
+@keyframes hotspot-flash {
+  0%, 100% { box-shadow: 0 0 0 2px rgba(255,188,94,0.5); }
+  50% { box-shadow: 0 0 0 7px rgba(255,188,94,0.15); }
+}
+
+.map-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 18px;
+  margin-top: 16px;
+  font-size: 12.5px;
+  color: var(--text-muted);
+}
+.legend-item { display: inline-flex; align-items: center; gap: 6px; }
+.legend-dot { width: 10px; height: 10px; border-radius: 50%; }
+
+/* ---------- Tooltip ---------- */
+.map-tooltip {
+  position: fixed;
+  z-index: 90;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  font-size: 12.5px;
+  box-shadow: var(--shadow);
+  pointer-events: none;
+  max-width: 220px;
+  opacity: 0;
+  transition: opacity 0.1s ease;
+}
+.map-tooltip.show { opacity: 1; }
+.map-tooltip .tt-name { font-weight: 700; font-size: 13.5px; margin-bottom: 6px; }
+.map-tooltip .tt-row { display: flex; justify-content: space-between; gap: 14px; }
+.map-tooltip .tt-row span:last-child { font-weight: 700; color: var(--text); }
+
+/* ---------- Search results panel ---------- */
+/* The results card fills remaining height; only the list scrolls, header stays put. */
+.results-card {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.results-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.results-header .card-title { margin: 0; }
+
+.result-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  /* JS (fitResults) sets an exact max-height; this is the no-JS fallback. */
+  max-height: calc(100vh - 260px);
+  min-height: 0;
+}
+.result-list.view-list { gap: 6px; }
+
+.filter-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+.filter-btn {
+  font-size: 12.5px; font-weight: 600;
+  padding: 6px 12px; border-radius: 999px;
+  background: var(--card-bg-alt); color: var(--text-muted);
+  border: 1px solid var(--border-soft); cursor: pointer;
+}
+.filter-btn:hover { color: var(--text); }
+.filter-btn.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+
+.summary-panel h3.card-title { display: flex; justify-content: space-between; align-items: center; }
+.result-count { font-weight: 700; color: var(--cffy-theme-primary-a30); }
+
+/* ---------- Calibrate mode ---------- */
+.workshop-map.calibrating { cursor: crosshair; user-select: none; }
+.workshop-map.calibrating .map-hotspot {
+  background: rgba(135, 209, 255, 0.12);
+  border-color: rgba(135, 209, 255, 0.7);
+  pointer-events: none;
+}
+.calib-label {
+  position: absolute;
+  transform: translateY(-100%);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--cffy-theme-info-a0);
+  background: rgba(0, 0, 0, 0.6);
+  padding: 1px 4px;
+  border-radius: 3px;
+  white-space: nowrap;
+  pointer-events: none;
+}
+.calib-rect {
+  position: absolute;
+  background: rgba(198, 84, 61, 0.3);
+  border: 2px solid var(--cffy-theme-primary-a10);
+  pointer-events: none;
+}
+.calib-readout {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 150;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px;
+  box-shadow: var(--shadow);
+  max-width: 260px;
+}
+.calib-hint { font-size: 12px; color: var(--text-muted); margin-bottom: 8px; }
+.calib-json {
+  background: var(--cffy-theme-surface-a0);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-sm);
+  padding: 10px;
+  font-size: 12.5px;
+  margin: 0 0 10px;
+  white-space: pre;
+  overflow-x: auto;
+}

@@ -1,0 +1,180 @@
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 15px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+a { color: var(--cffy-theme-info-a0); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+img { max-width: 100%; }
+
+/* ---------- Custom scrollbars ---------- */
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--cffy-theme-surface-a30) transparent;
+}
+/* WebKit / Chromium / Edge — page scrollbar + all scroll containers */
+::-webkit-scrollbar { width: 12px; height: 12px; }
+::-webkit-scrollbar-track {
+  background: var(--cffy-theme-surface-a0);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--cffy-theme-surface-a30);
+  border-radius: 999px;
+  border: 3px solid var(--cffy-theme-surface-a0);
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--cffy-theme-surface-a40);
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-corner { background: var(--cffy-theme-surface-a0); }
+
+/* Slimmer, transparent-track variant for inner scroll areas (cards, lists, map) */
+.result-list::-webkit-scrollbar,
+.workshop-map-wrapper::-webkit-scrollbar,
+.modal::-webkit-scrollbar {
+  width: 8px; height: 8px;
+}
+.result-list::-webkit-scrollbar-track,
+.workshop-map-wrapper::-webkit-scrollbar-track,
+.modal::-webkit-scrollbar-track {
+  background: transparent;
+}
+.result-list::-webkit-scrollbar-thumb,
+.workshop-map-wrapper::-webkit-scrollbar-thumb,
+.modal::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+}
+
+.app {
+  display: flex;
+  min-height: 100vh;
+}
+
+/* ---------- Sidebar nav ---------- */
+.side-nav {
+  width: 220px;
+  flex-shrink: 0;
+  background: var(--nav-bg);
+  border-right: 1px solid var(--border-soft);
+  padding: 22px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 24px;
+  padding: 0 6px;
+}
+
+.brand-logo {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  background: #ffffff;
+  object-fit: contain;
+  padding: 3px;
+  flex-shrink: 0;
+}
+
+.brand-name { font-weight: 700; font-size: 15px; line-height: 1.2; }
+.brand-sub { font-size: 11px; color: var(--text-muted); }
+
+.nav-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  font-weight: 600;
+  font-size: 13px;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+}
+.nav-link:hover { background: var(--card-bg-alt); color: var(--text); text-decoration: none; }
+.nav-link.active { color: var(--primary); }
+.nav-link .ico {
+  width: 18px; height: 18px;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.ico-svg { display: block; }
+
+.nav-spacer { flex: 1; }
+
+/* ---------- Main content ---------- */
+.main {
+  flex: 1;
+  min-width: 0;
+  padding: 28px 32px 60px;
+}
+
+.page-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 22px;
+}
+.page-title { font-size: 26px; font-weight: 800; margin: 0; }
+.page-sub { color: var(--text-muted); margin: 4px 0 0; font-size: 14px; }
+
+/* ---------- Home 3-column layout ---------- */
+.home-layout {
+  display: grid;
+  grid-template-columns: 340px minmax(0, 1fr) 290px;
+  gap: 20px;
+  align-items: start;
+}
+
+.sidebar, .summary-panel { position: sticky; top: 20px; }
+
+/* ---------- Responsive ---------- */
+@media (max-width: 1200px) {
+  .home-layout { grid-template-columns: 340px minmax(0, 1fr); }
+  .home-layout .summary-panel {
+    grid-column: 1 / -1;
+    position: static;
+  }
+}
+
+@media (max-width: 768px) {
+  .app { flex-direction: column; }
+  .side-nav {
+    width: 100%;
+    height: auto;
+    position: static;
+    flex-direction: row;
+    align-items: center;
+    overflow-x: auto;
+    padding: 12px 14px;
+  }
+  .brand { margin-bottom: 0; margin-right: 12px; }
+  .nav-link { white-space: nowrap; }
+  .nav-spacer { display: none; }
+  .main { padding: 18px 16px 48px; }
+  .home-layout { grid-template-columns: 1fr; }
+  .sidebar, .summary-panel { position: static; }
+}
+
+@media (max-width: 480px) {
+  .page-head { flex-direction: column; }
+  .page-title { font-size: 22px; }
+}

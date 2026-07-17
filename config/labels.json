@@ -1,0 +1,15 @@
+{
+  "statuses": [
+    { "name": "available",   "color": "#7dff95", "label": "可用" },
+    { "name": "in-use",      "color": "#ffbc5e", "label": "使用中" },
+    { "name": "wishlist", "color": "#87d1ff", "label": "願望清單" }
+  ],
+  "categories": [
+    { "name": "tool",     "color": "#87d1ff", "label": "工具" },
+    { "name": "material", "color": "#e29a8a", "label": "材料" }
+  ],
+  "tags": [
+    { "name": "常用",     "color": "#c6543d", "label": "常用" },
+    { "name": "軟體", "color": "#87d1ff", "label": "軟體" }
+  ]
+}

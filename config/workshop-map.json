@@ -1,0 +1,279 @@
+{
+  "mapImage": "images/workshop-floor-plan.png",
+  "aspectRatio": "1417 / 2000",
+  "areas": [
+    {
+      "id": "quick-box-front",
+      "name": "零件快取盒 (門口) ",
+      "type": "quick-box",
+      "x": 2.26,
+      "y": 2.5,
+      "width": 29.22,
+      "height": 9.13,
+      "structureId": "bins-grid"
+    },
+    {
+      "id": "cabinet-11",
+      "name": "櫃 11",
+      "type": "cabinet",
+      "x": 2.26,
+      "y": 11.93,
+      "width": 14.61,
+      "height": 6.88,
+      "structureId": "shelf-2"
+    },
+    {
+      "id": "cabinet-12",
+      "name": "櫃 12",
+      "type": "cabinet",
+      "x": 16.87,
+      "y": 11.93,
+      "width": 14.61,
+      "height": 6.88,
+      "rotation": 0,
+      "structureId": "shelf-2"
+    },
+    {
+      "id": "cabinet-13",
+      "name": "櫃 13",
+      "type": "cabinet",
+      "x": 31.48,
+      "y": 11.93,
+      "width": 14.61,
+      "height": 6.88,
+      "rotation": 0,
+      "structureId": "shelf-2"
+    },
+    {
+      "id": "cabinet-14",
+      "name": "櫃 14",
+      "type": "cabinet",
+      "x": 46.09,
+      "y": 11.93,
+      "width": 7.06,
+      "height": 6.88,
+      "rotation": 0,
+      "structureId": "shelf-2"
+    },
+    {
+      "id": "dry-box-a",
+      "name": "防潮箱 A",
+      "type": "dry-box",
+      "x": 2.15,
+      "y": 29.83,
+      "width": 11.4,
+      "height": 8.88,
+      "rotation": 0,
+      "structureId": "dry-box"
+    },
+    {
+      "id": "dry-box-b",
+      "name": "防潮箱 B",
+      "type": "dry-box",
+      "x": 2.15,
+      "y": 38.76,
+      "width": 11.4,
+      "height": 8.93,
+      "rotation": 0,
+      "structureId": "dry-box"
+    },
+    {
+      "id": "tool-cart-c",
+      "name": "工具車 C",
+      "type": "tool-cart",
+      "x": 2.34,
+      "y": 47.98,
+      "width": 8.04,
+      "height": 6.97,
+      "rotation": 0,
+      "structureId": "single"
+    },
+    {
+      "id": "table-1",
+      "name": "桌子 1",
+      "type": "table",
+      "x": 26.92,
+      "y": 26.4,
+      "width": 21.21,
+      "height": 22.53,
+      "rotation": 0,
+      "structureId": "single"
+    },
+    {
+      "id": "table-2",
+      "name": "桌子 2",
+      "type": "table",
+      "x": 26.92,
+      "y": 54.72,
+      "width": 21.21,
+      "height": 21.91,
+      "rotation": 0,
+      "structureId": "single"
+    },
+    {
+      "id": "cnc",
+      "name": "CNC 工作區",
+      "type": "machine",
+      "x": 2.15,
+      "y": 58.43,
+      "width": 17.2,
+      "height": 18.2,
+      "rotation": 0,
+      "structureId": "single"
+    },
+    {
+      "id": "tool-cart-a",
+      "name": "推車 A",
+      "type": "tool-cart",
+      "x": 54.67,
+      "y": 18.6,
+      "width": 8.04,
+      "height": 6.97,
+      "rotation": 0,
+      "structureId": "single"
+    },
+    {
+      "id": "tool-cart-b",
+      "name": "推車 B",
+      "type": "tool-cart",
+      "x": 62.8,
+      "y": 18.6,
+      "width": 8.04,
+      "height": 6.97,
+      "rotation": 0,
+      "structureId": "single"
+    },
+    {
+      "id": "cabinet-15",
+      "name": "櫃 15",
+      "type": "cabinet",
+      "x": 58.79,
+      "y": 26.85,
+      "width": 10.84,
+      "height": 8.82,
+      "rotation": 0,
+      "structureId": "shelf-2"
+    },
+    {
+      "id": "cabinet-16",
+      "name": "櫃 16",
+      "type": "cabinet",
+      "x": 58.79,
+      "y": 35.73,
+      "width": 10.84,
+      "height": 8.76,
+      "rotation": 0,
+      "structureId": "shelf-2"
+    },
+    {
+      "id": "cabinet-17",
+      "name": "櫃 17",
+      "type": "cabinet",
+      "x": 58.79,
+      "y": 44.55,
+      "width": 10.84,
+      "height": 8.82,
+      "rotation": 0,
+      "structureId": "shelf-2"
+    },
+    {
+      "id": "cabinet-18",
+      "name": "櫃 18",
+      "type": "cabinet",
+      "x": 58.79,
+      "y": 53.37,
+      "width": 10.84,
+      "height": 8.82,
+      "rotation": 0,
+      "structureId": "shelf-2"
+    },
+    {
+      "id": "cabinet-19",
+      "name": "櫃 19",
+      "type": "cabinet",
+      "x": 58.79,
+      "y": 62.25,
+      "width": 10.84,
+      "height": 8.82,
+      "rotation": 0,
+      "structureId": "shelf-2"
+    },
+    {
+      "id": "cabinet-20",
+      "name": "櫃 20",
+      "type": "cabinet",
+      "x": 58.79,
+      "y": 71.07,
+      "width": 10.84,
+      "height": 8.82,
+      "rotation": 0,
+      "structureId": "shelf-2"
+    },
+    {
+      "id": "cabinet-21",
+      "name": "櫃 21",
+      "type": "cabinet",
+      "x": 58.79,
+      "y": 79.94,
+      "width": 10.84,
+      "height": 8.76,
+      "rotation": 0,
+      "structureId": "shelf-2"
+    },
+    {
+      "id": "pegboard",
+      "name": "洞洞板",
+      "type": "pegboard",
+      "x": 70.19,
+      "y": 26.85,
+      "width": 26.54,
+      "height": 44.21,
+      "rotation": 0,
+      "structureId": "pegboard-grid"
+    },
+    {
+      "id": "cabinet-24",
+      "name": "櫃 24",
+      "type": "cabinet",
+      "x": 2.26,
+      "y": 82.07,
+      "width": 14.61,
+      "height": 6.88,
+      "rotation": 0,
+      "structureId": "shelf-2"
+    },
+    {
+      "id": "cabinet-23",
+      "name": "櫃 23",
+      "type": "cabinet",
+      "x": 16.87,
+      "y": 82.07,
+      "width": 14.61,
+      "height": 6.88,
+      "rotation": 0,
+      "structureId": "shelf-2"
+    },
+    {
+      "id": "cabinet-22",
+      "name": "櫃 22",
+      "type": "cabinet",
+      "x": 31.48,
+      "y": 82.07,
+      "width": 14.61,
+      "height": 6.88,
+      "rotation": 0,
+      "structureId": "shelf-2"
+    },
+    {
+      "id": "quick-box-cnc",
+      "name": "零件快取盒 (CNC) ",
+      "type": "quick-box",
+      "x": 16.87,
+      "y": 88.95,
+      "width": 29.22,
+      "height": 9.13,
+      "rotation": 0,
+      "structureId": "bins-grid"
+    }
+  ]
+}

@@ -1,0 +1,76 @@
+{
+  "structures": [
+    {
+      "id": "shelf-2",
+      "name": "雙層層板櫃",
+      "layoutType": "grid",
+      "columns": 1,
+      "rows": 3,
+      "sections": [
+        { "id": "s0", "name": "櫃子上方", "row": 1, "column": 1, "rowSpan": 1, "columnSpan": 1, "type": "shelf" },
+        { "id": "s1", "name": "上層板", "row": 2, "column": 1, "rowSpan": 1, "columnSpan": 1, "type": "shelf" },
+        { "id": "s2", "name": "下層板", "row": 3, "column": 1, "rowSpan": 1, "columnSpan": 1, "type": "shelf" }
+      ]
+    },
+    {
+      "id": "dry-box",
+      "name": "防潮箱",
+      "layoutType": "grid",
+      "columns": 1,
+      "rows": 3,
+      "sections": [
+        { "id": "t1", "name": "上層", "row": 1, "column": 1, "rowSpan": 1, "columnSpan": 1, "type": "shelf" },
+        { "id": "t2", "name": "中層", "row": 2, "column": 1, "rowSpan": 1, "columnSpan": 1, "type": "shelf" },
+        { "id": "t3", "name": "下層", "row": 3, "column": 1, "rowSpan": 1, "columnSpan": 1, "type": "shelf" }
+      ]
+    },
+    {
+      "id": "pegboard-grid",
+      "name": "洞洞板",
+      "layoutType": "grid",
+      "columns": 4,
+      "rows": 5,
+      "sections": [
+        { "id": "p11", "name": "A 區", "row": 1, "column": 1, "rowSpan": 1, "columnSpan": 1, "type": "hook" },
+        { "id": "p12", "name": "B 區", "row": 1, "column": 2, "rowSpan": 1, "columnSpan": 1, "type": "hook" },
+        { "id": "p13", "name": "C 區", "row": 1, "column": 3, "rowSpan": 1, "columnSpan": 1, "type": "hook" },
+        { "id": "p14", "name": "D 區", "row": 1, "column": 4, "rowSpan": 1, "columnSpan": 1, "type": "hook" },
+        { "id": "p21", "name": "E 區", "row": 2, "column": 1, "rowSpan": 1, "columnSpan": 2, "type": "hook" },
+        { "id": "p23", "name": "F 區", "row": 2, "column": 3, "rowSpan": 1, "columnSpan": 2, "type": "hook" },
+        { "id": "p31", "name": "G 區", "row": 3, "column": 1, "rowSpan": 1, "columnSpan": 1, "type": "hook" },
+        { "id": "p32", "name": "H 區", "row": 3, "column": 2, "rowSpan": 1, "columnSpan": 1, "type": "hook" },
+        { "id": "p33", "name": "I 區", "row": 3, "column": 3, "rowSpan": 1, "columnSpan": 1, "type": "hook" },
+        { "id": "p34", "name": "J 區", "row": 3, "column": 4, "rowSpan": 1, "columnSpan": 1, "type": "hook" },
+        { "id": "p41", "name": "大型工具區", "row": 4, "column": 1, "rowSpan": 2, "columnSpan": 4, "type": "hook" }
+      ]
+    },
+    {
+      "id": "bins-grid",
+      "name": "零件快取盒",
+      "layoutType": "grid",
+      "columns": 4,
+      "rows": 3,
+      "sections": [
+        { "id": "b1", "name": "格 1", "row": 1, "column": 1, "rowSpan": 1, "columnSpan": 1, "type": "bin" },
+        { "id": "b2", "name": "格 2", "row": 1, "column": 2, "rowSpan": 1, "columnSpan": 1, "type": "bin" },
+        { "id": "b3", "name": "格 3", "row": 1, "column": 3, "rowSpan": 1, "columnSpan": 1, "type": "bin" },
+        { "id": "b4", "name": "格 4", "row": 1, "column": 4, "rowSpan": 1, "columnSpan": 1, "type": "bin" },
+        { "id": "b5", "name": "格 5", "row": 2, "column": 1, "rowSpan": 1, "columnSpan": 1, "type": "bin" },
+        { "id": "b6", "name": "格 6", "row": 2, "column": 2, "rowSpan": 1, "columnSpan": 1, "type": "bin" },
+        { "id": "b7", "name": "格 7", "row": 2, "column": 3, "rowSpan": 1, "columnSpan": 1, "type": "bin" },
+        { "id": "b8", "name": "格 8", "row": 2, "column": 4, "rowSpan": 1, "columnSpan": 1, "type": "bin" },
+        { "id": "b9", "name": "底部長格", "row": 3, "column": 1, "rowSpan": 1, "columnSpan": 4, "type": "bin" }
+      ]
+    },
+    {
+      "id": "single",
+      "name": "單一區域",
+      "layoutType": "grid",
+      "columns": 1,
+      "rows": 1,
+      "sections": [
+        { "id": "main", "name": "主要區域", "row": 1, "column": 1, "rowSpan": 1, "columnSpan": 1, "type": "area" }
+      ]
+    }
+  ]
+}

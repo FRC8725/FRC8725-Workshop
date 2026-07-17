@@ -1,0 +1,83 @@
+.storage-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+.storage-title-wrap { display: flex; flex-direction: column; gap: 6px; }
+.storage-meta { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.storage-desc { color: var(--text-muted); font-size: 13.5px; max-width: 620px; }
+.storage-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+
+.storage-toolbar {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+.storage-toolbar .search-box { flex: 1; min-width: 220px; }
+
+.storage-stats { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; }
+.mini-stat {
+  background: var(--card-bg);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius);
+  padding: 10px 16px;
+  min-width: 110px;
+}
+.mini-stat .v { font-size: 20px; font-weight: 800; }
+.mini-stat .l { font-size: 11.5px; color: var(--text-muted); margin-top: 2px; }
+
+/* ---------- Structure grid ---------- */
+.structure-grid {
+  display: grid;
+  gap: 14px;
+}
+.section-cell {
+  background: var(--card-bg);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  min-height: 120px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.section-cell.highlight {
+  border-color: var(--cffy-theme-warning-a0);
+  box-shadow: 0 0 0 2px rgba(255,188,94,0.35);
+}
+.section-head {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 10px; gap: 8px;
+}
+.section-name { font-weight: 700; font-size: 14px; }
+.section-type { font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.04em; }
+.section-items { display: flex; flex-direction: column; gap: 8px; flex: 1; }
+.section-items.view-list { gap: 6px; }
+.section-empty { color: var(--text-dim); font-size: 12.5px; font-style: italic; padding: 6px 0; }
+
+/* item card / list styling is shared in components.css.
+   In a section cell, cards stay compact (no thumbnail column). */
+.section-items .item-card { padding: 10px 12px; }
+
+/* ---------- View switcher position ---------- */
+.storage-toolbar .view-mode-switcher { margin-left: auto; }
+
+/* ---------- Error page ---------- */
+.error-page {
+  max-width: 460px;
+  margin: 60px auto;
+  text-align: center;
+}
+.error-page .big-ico { font-size: 52px; margin-bottom: 14px; }
+.error-page h1 { font-size: 22px; margin: 0 0 8px; }
+.error-page p { color: var(--text-muted); margin-bottom: 20px; }
+
+@media (max-width: 480px) {
+  .storage-actions { width: 100%; }
+  .storage-actions .btn { flex: 1; justify-content: center; }
+}

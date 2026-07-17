@@ -1,0 +1,61 @@
+:root {
+  /** Base text colors */
+  --cffy-theme-light-a0: #ffffff;
+  --cffy-theme-dark-a0: #000000;
+
+  /** Theme primary colors */
+  --cffy-theme-primary-a0: #c6543d;
+  --cffy-theme-primary-a10: #ce6651;
+  --cffy-theme-primary-a20: #d57864;
+  --cffy-theme-primary-a30: #dc8977;
+  --cffy-theme-primary-a40: #e29a8a;
+  --cffy-theme-primary-a50: #e8ab9d;
+
+  /** Theme surface colors */
+  --cffy-theme-surface-a0: #121212;
+  --cffy-theme-surface-a10: #252525;
+  --cffy-theme-surface-a20: #393939;
+  --cffy-theme-surface-a30: #4f4f4f;
+  --cffy-theme-surface-a40: #666666;
+  --cffy-theme-surface-a50: #7d7d7d;
+
+  /** Success colors */
+  --cffy-theme-success-a0: #7dff95;
+  --cffy-theme-success-a10: #9dffac;
+  --cffy-theme-success-a20: #b8ffc1;
+
+  /** Warning colors */
+  --cffy-theme-warning-a0: #ffbc5e;
+  --cffy-theme-warning-a10: #ffca83;
+  --cffy-theme-warning-a20: #ffd8a4;
+
+  /** Danger colors */
+  --cffy-theme-danger-a0: #ff8080;
+  --cffy-theme-danger-a10: #ff9b99;
+  --cffy-theme-danger-a20: #ffb5b2;
+
+  /** Info colors */
+  --cffy-theme-info-a0: #87d1ff;
+  --cffy-theme-info-a10: #a1dbff;
+  --cffy-theme-info-a20: #b9e4ff;
+
+  /** Semantic aliases */
+  --bg: var(--cffy-theme-surface-a0);
+  --nav-bg: var(--cffy-theme-surface-a10);
+  --card-bg: var(--cffy-theme-surface-a10);
+  --card-bg-alt: var(--cffy-theme-surface-a20);
+  --border: var(--cffy-theme-surface-a30);
+  --border-soft: var(--cffy-theme-surface-a20);
+  --text: var(--cffy-theme-light-a0);
+  --text-muted: var(--cffy-theme-surface-a50);
+  --text-dim: var(--cffy-theme-surface-a40);
+  --primary: var(--cffy-theme-primary-a0);
+  --primary-hover: var(--cffy-theme-primary-a10);
+
+  --radius-sm: 6px;
+  --radius: 10px;
+  --radius-lg: 14px;
+  --shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+  --gap: 16px;
+  --font: "Segoe UI", "Microsoft JhengHei", "PingFang TC", system-ui, sans-serif;
+}
