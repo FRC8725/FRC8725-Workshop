@@ -4,7 +4,7 @@ import { $, el, escapeHtml, icon, formatLocation, isLowStock, isOutOfStock, inve
 import { initLabels, storageTypeLabel } from "../ui/labels.js";
 import {
   getAreaById, getStructureById, getItemsByStorageId,
-  getWorkshopMap, getStructures, deleteItem, updateItem,
+  getWorkshopMap, getStructures, deleteItem, adjustItemQuantity,
 } from "../services/data-service.js";
 import { buildLocationIndex, filterItems } from "../utils/search.js";
 import { renderStructure } from "../ui/storage-renderer.js";
@@ -146,20 +146,16 @@ function wireItemDelegation() {
 
 async function handleQuantityAction(btn, item) {
   const delta = btn.dataset.action === "quantity-increase" ? 1 : -1;
-  const current = Math.max(0, Number(item.quantity) || 0);
-  const total = Math.max(0, Number(item.totalQuantity ?? item.quantity) || 0);
-  const quantity = item.category === "tool"
-    ? Math.min(total, Math.max(0, current + delta))
-    : Math.max(0, current + delta);
-  if (quantity === current) return;
   btn.disabled = true;
   try {
-    await updateItem(item.id, { quantity });
+    await adjustItemQuantity(item.id, delta);
     notify.success(`${item.category === "tool" ? (delta > 0 ? "已歸還" : "已使用") : (delta > 0 ? "已補充" : "已取用")}「${item.name}」`);
     await refreshItems();
   } catch (err) {
     console.error(err);
-    notify.danger("數量更新失敗：" + firestoreErrorMessage(err));
+    if (err.code === "quantity-empty" || err.code === "quantity-full") notify.warning(err.message);
+    else notify.danger("數量更新失敗：" + firestoreErrorMessage(err));
+    await refreshItems();
     btn.disabled = false;
   }
 }

@@ -56,6 +56,12 @@
 }
 #map-hotspots { position: absolute; inset: 0; }
 
+@media (max-width: 768px) {
+  /* Keep one stable map geometry while mobile browser chrome opens/closes. */
+  .workshop-map { width: 100%; }
+  .workshop-map img { width: 100%; }
+}
+
 .map-hotspot {
   position: absolute;
   background: rgba(198, 84, 61, 0.0);

@@ -1,7 +1,7 @@
 // js/pages/home.js — floor-plan overview + global search
 
 import { $, el, escapeHtml, icon, isLowStock, isOutOfStock, debounce, inventoryCount, inUseToolCount } from "../utils/utils.js";
-import { getItems, getWorkshopMap, getStructures, getSummaryStatsConfig, updateItem } from "../services/data-service.js";
+import { getItems, getWorkshopMap, getStructures, getSummaryStatsConfig, adjustItemQuantity } from "../services/data-service.js";
 import { buildLocationIndex, filterItems } from "../utils/search.js";
 import {
   computeAreaStats, renderHotspots, setSearchHighlight, clearSearchHighlight,
@@ -247,20 +247,16 @@ function wireResultsDelegation() {
     if (btn?.dataset.action === "quantity-decrease" || btn?.dataset.action === "quantity-increase") {
       e.stopPropagation();
       const delta = btn.dataset.action === "quantity-increase" ? 1 : -1;
-      const current = Math.max(0, Number(item.quantity) || 0);
-      const total = Math.max(0, Number(item.totalQuantity ?? item.quantity) || 0);
-      const quantity = item.category === "tool"
-        ? Math.min(total, Math.max(0, current + delta))
-        : Math.max(0, current + delta);
-      if (quantity === current) return;
       btn.disabled = true;
       try {
-        await updateItem(item.id, { quantity });
+        await adjustItemQuantity(item.id, delta);
         notify.success(`${item.category === "tool" ? (delta > 0 ? "已歸還" : "已使用") : (delta > 0 ? "已補充" : "已取用")}「${item.name}」`);
         await refreshData();
       } catch (err) {
         console.error(err);
-        notify.danger("數量更新失敗：" + firestoreErrorMessage(err));
+        if (err.code === "quantity-empty" || err.code === "quantity-full") notify.warning(err.message);
+        else notify.danger("數量更新失敗：" + firestoreErrorMessage(err));
+        await refreshData();
         btn.disabled = false;
       }
       return;
@@ -358,11 +354,34 @@ function fitLayout() {
 
 function setupFit() {
   const debounced = debounce(fitLayout, 100);
-  window.addEventListener("resize", debounced);
+  let viewportWidth = window.innerWidth;
+  const onResize = () => {
+    const nextWidth = window.innerWidth;
+    // Mobile browser chrome changes innerHeight while scrolling. Refit only
+    // when the layout width changes, otherwise the map visibly stretches.
+    if (Math.abs(nextWidth - viewportWidth) < 2) return;
+    viewportWidth = nextWidth;
+    debounced();
+  };
+  window.addEventListener("resize", onResize);
+  window.addEventListener("orientationchange", debounced);
   let observer = null;
   if (typeof ResizeObserver !== "undefined") {
     const main = document.querySelector(".main");
-    if (main) { observer = new ResizeObserver(debounced); observer.observe(main); }
+    if (main) {
+      let mainWidth = main.getBoundingClientRect().width;
+      observer = new ResizeObserver((entries) => {
+        const nextWidth = entries[0]?.contentRect.width ?? mainWidth;
+        if (Math.abs(nextWidth - mainWidth) < 2) return;
+        mainWidth = nextWidth;
+        debounced();
+      });
+      observer.observe(main);
+    }
   }
-  return () => { window.removeEventListener("resize", debounced); observer?.disconnect(); };
+  return () => {
+    window.removeEventListener("resize", onResize);
+    window.removeEventListener("orientationchange", debounced);
+    observer?.disconnect();
+  };
 }

@@ -79,6 +79,15 @@ export async function updateItem(itemId, updates) {
   return result;
 }
 
+export async function adjustItemQuantity(itemId, delta) {
+  const result = await (await firebase()).fbAdjustItemQuantity(itemId, delta);
+  if (memCache) {
+    const index = memCache.findIndex((item) => item.id === itemId);
+    if (index >= 0) memCache[index] = { ...memCache[index], quantity: result.quantity };
+  }
+  return result;
+}
+
 export async function deleteItem(itemId) {
   await (await firebase()).fbDeleteItem(itemId);
   if (memCache) memCache = memCache.filter((item) => item.id !== itemId);
