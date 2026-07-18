@@ -3,6 +3,9 @@ import { clearProtectedUi, initChrome, resetChrome } from "./app.js";
 import { submitPendingRequest } from "../services/user-service.js";
 import { mountLoginPage } from "../pages/login.js";
 import { startRouter, stopRouter } from "./router.js";
+import { initSidebarToggle } from "../ui/sidebar.js";
+
+initSidebarToggle();
 
 const outlet = document.getElementById("page-outlet");
 let authRevision = 0;

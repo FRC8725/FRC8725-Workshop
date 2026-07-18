@@ -34,11 +34,15 @@ export function renderNavigation(activeName = readRoute().name) {
     const link = document.createElement("a");
     link.className = "nav-link";
     link.href = `#/${name}`;
+    link.title = route.label;
     link.classList.toggle("active", name === activeName || (activeName === "storage" && name === "home"));
     const icon = document.createElement("span");
     icon.className = "ico";
     icon.innerHTML = vectorIcon(route.icon, { size: "18px" });
-    link.append(icon, document.createTextNode(route.label));
+    const label = document.createElement("span");
+    label.className = "nav-label";
+    label.textContent = route.label;
+    link.append(icon, label);
     host.appendChild(link);
   }
 }

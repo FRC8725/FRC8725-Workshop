@@ -15,10 +15,13 @@
 </head>
 <body>
   <div class="app">
-    <nav class="side-nav" aria-label="主導覽">
+    <nav class="side-nav" id="side-nav" aria-label="主導覽">
+      <button type="button" id="sidebar-toggle" class="sidebar-toggle" aria-label="收合側邊欄" aria-expanded="true" title="收合側邊欄">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+      </button>
       <div class="brand">
         <img class="brand-logo" src="images/icon.ico" alt="Team 8725 Misty Panther Logo">
-        <div><div class="brand-name">Team 8725</div><div class="brand-sub">Misty Panther · Workshop</div></div>
+        <div class="brand-text"><div class="brand-name">Team 8725</div><div class="brand-sub">Misty Panther · Workshop</div></div>
       </div>
       <div class="nav-group" id="primary-nav"></div>
       <div class="nav-spacer"></div>
