@@ -130,7 +130,7 @@
       "width": 8.05,
       "height": 7.14,
       "rotation": 0,
-      "structureId": "single"
+      "structureId": "tool-cart-a"
     },
     {
       "id": "tool-cart-b",
@@ -141,7 +141,7 @@
       "width": 8.05,
       "height": 7.14,
       "rotation": 0,
-      "structureId": "single"
+      "structureId": "tool-cart-b"
     },
     {
       "id": "cabinet-15",
