@@ -1,20 +1,20 @@
 // js/pages/home.js — floor-plan overview + global search
 
-import { $, el, escapeHtml, icon, isLowStock, isOutOfStock, debounce, inventoryCount, inUseToolCount } from "../utils/utils.js";
+import { $, el, escapeHtml, icon, isLowStock, isOutOfStock, debounce, inventoryCount, inUseToolCount, formatLocation } from "../utils/utils.js";
 import { compareNames, toMillis } from "../utils/item-logic.js";
-import { getItems, getWorkshopMap, getStructures, getSummaryStatsConfig, adjustItemQuantity } from "../services/data-service.js";
+import { getItems, getFloorPlans, getFloorPlanData, getAllAreas, getStructures, getSummaryStatsConfig, adjustItemQuantity } from "../services/data-service.js";
 import { buildLocationIndex, filterItems } from "../utils/search.js";
 import {
   computeAreaStats, renderHotspots, setSearchHighlight, clearSearchHighlight,
 } from "../ui/map-renderer.js";
 import { initLabels } from "../ui/labels.js";
-import {
-  getViewMode, setViewMode, renderViewSwitcher, renderItems,
-} from "../ui/item-view.js";
+import { renderItems } from "../ui/item-view.js";
 import { isCalibrateMode, enableCalibrate } from "../ui/map-calibrate.js";
 import { notify } from "../ui/notifications.js";
 import { openItemForm } from "../ui/item-form.js";
 import { firestoreErrorMessage } from "../services/auth-service.js";
+
+const PLAN_KEY = "workshop-floor-plan-id";
 
 let state = {
   items: [],
@@ -23,7 +23,6 @@ let state = {
   index: null,
   filter: "all", // all | tool | material | low
   query: "",
-  viewMode: getViewMode("search"),
   summaryStats: [],
 };
 
@@ -35,7 +34,8 @@ export async function mountPage({ routeTo }) {
   navigate = routeTo;
   state = {
     items: [], areas: [], structures: [], index: null,
-    filter: "all", query: "", viewMode: getViewMode("search"), summaryStats: [],
+    plans: [], planId: null,
+    filter: "all", query: "", summaryStats: [],
     summaryFilter: null,
     sortField: "name", sortDir: "asc",
   };
@@ -43,7 +43,6 @@ export async function mountPage({ routeTo }) {
   wireSearch();
   wireFilters();
   wireSortControls();
-  wireViewSwitcher();
   wireResultsDelegation();
   const cleanupFit = setupFit();
   $("#add-item-btn")?.addEventListener("click", () => {
@@ -57,27 +56,103 @@ export async function mountPage({ routeTo }) {
 async function loadAll() {
   const mapPanel = document.getElementById("map-status");
   try {
-    const [map, structures, summaryStats] = await Promise.all([
-      getWorkshopMap(), getStructures(), getSummaryStatsConfig(), initLabels(),
+    const [plans, allAreas, structures, summaryStats] = await Promise.all([
+      getFloorPlans(), getAllAreas(), getStructures(), getSummaryStatsConfig(), initLabels(),
     ]);
-    state.areas = map.areas || [];
+    state.plans = plans;
     state.structures = structures;
     state.summaryStats = summaryStats;
-    state.index = buildLocationIndex(state.areas, state.structures);
+    // 位置索引用「所有平面圖區域的聯集」，跨平面圖的品項名稱也能正確顯示。
+    state.index = buildLocationIndex(allAreas, state.structures);
+
+    let saved = "";
+    try { saved = localStorage.getItem(PLAN_KEY) || ""; } catch { /* ignore */ }
+    state.planId = plans.some((plan) => plan.id === saved) ? saved : plans[0]?.id;
 
     const img = document.getElementById("workshop-map-image");
     if (img) {
-      if (map.mapImage) img.src = map.mapImage;
       img.addEventListener("load", fitLayout);
       img.addEventListener("error", () => {
-        mapPanel.innerHTML = `<div class="banner banner-danger">平面圖載入失敗：${escapeHtml(map.mapImage)}</div>`;
+        mapPanel.innerHTML = `<div class="banner banner-danger">平面圖載入失敗：${escapeHtml(img.src)}</div>`;
       });
     }
+    renderPlanSwitcher();
+    await applyPlan(state.planId, { skipRefresh: true });
     await refreshData();
   } catch (err) {
     console.error(err);
     if (mapPanel) mapPanel.innerHTML =
       `<div class="banner banner-danger">設定載入失敗：${escapeHtml(err.message)}。請確認以 HTTP 伺服器（如 Live Server）開啟，而非直接用 file:// 開啟。</div>`;
+  }
+}
+
+function currentPlan() {
+  return state.plans.find((plan) => plan.id === state.planId) || state.plans[0] || null;
+}
+
+/** 切換平面圖：更新標題、影像與可點擊區域。 */
+async function applyPlan(planId, { skipRefresh = false } = {}) {
+  const plan = state.plans.find((p) => p.id === planId) || state.plans[0];
+  if (!plan) return;
+  state.planId = plan.id;
+  try { localStorage.setItem(PLAN_KEY, plan.id); } catch { /* ignore */ }
+
+  const titleEl = document.querySelector(".map-panel .card-title");
+  if (titleEl) titleEl.textContent = plan.name || "培訓室平面圖";
+
+  const data = await getFloorPlanData(plan);
+  state.areas = data.areas || [];
+  const img = document.getElementById("workshop-map-image");
+  if (img && data.image) { img.alt = plan.name || "培訓室平面圖"; img.src = data.image; }
+
+  document.querySelectorAll(".plan-switcher .plan-tab").forEach((tab) => {
+    const active = tab.dataset.planId === plan.id;
+    tab.classList.toggle("is-active", active);
+    tab.setAttribute("aria-selected", active ? "true" : "false");
+    tab.tabIndex = active ? 0 : -1;
+  });
+
+  renderMap();
+  if (!skipRefresh) fitLayout();
+}
+
+function renderPlanSwitcher() {
+  const panel = document.querySelector(".map-panel");
+  if (!panel) return;
+  let host = panel.querySelector(".plan-switcher");
+  if (state.plans.length <= 1) { host?.remove(); return; }
+  if (!host) {
+    host = el("div", { class: "plan-switcher", role: "tablist", "aria-label": "選擇平面圖" });
+    const title = panel.querySelector(".card-title");
+    title.after(host);
+  }
+  host.replaceChildren();
+  for (const plan of state.plans) {
+    const tab = el("button", {
+      type: "button",
+      role: "tab",
+      class: "plan-tab" + (plan.id === state.planId ? " is-active" : ""),
+      "data-plan-id": plan.id,
+      "aria-selected": plan.id === state.planId ? "true" : "false",
+      tabindex: plan.id === state.planId ? "0" : "-1",
+      title: plan.name || plan.id,
+    }, plan.name || plan.id);
+    tab.addEventListener("click", () => { if (plan.id !== state.planId) applyPlan(plan.id); });
+    host.appendChild(tab);
+  }
+  if (!host.dataset.keyboardWired) {
+    host.dataset.keyboardWired = "1";
+    host.addEventListener("keydown", (event) => {
+      if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+      const tabs = [...host.querySelectorAll(".plan-tab")];
+      const current = tabs.indexOf(document.activeElement);
+      if (current < 0 || tabs.length < 2) return;
+      event.preventDefault();
+      const direction = event.key === "ArrowRight" ? 1 : -1;
+      const next = tabs[(current + direction + tabs.length) % tabs.length];
+      next.focus();
+      next.click();
+    });
   }
 }
 
@@ -103,9 +178,7 @@ function renderMap() {
     host,
     areas: state.areas,
     stats,
-    onOpen: (area) => {
-      navigate("storage", { id: area.id });
-    },
+    onOpen: (area) => navigate("storage", { id: area.id }),
   });
 
   if (isCalibrateMode()) {
@@ -272,18 +345,6 @@ function sortResults(results) {
   });
 }
 
-function wireViewSwitcher() {
-  const host = document.getElementById("search-view-switcher");
-  if (!host) return;
-  host.innerHTML = "";
-  host.appendChild(renderViewSwitcher(state.viewMode, (mode) => {
-    state.viewMode = mode;
-    setViewMode("search", mode);
-    renderResults();          // re-render with current data — keeps query/filter, no reload
-    fitLayout();
-  }));
-}
-
 function applyFilter(items) {
   switch (state.filter) {
     case "tool": return items.filter((i) => i.category === "tool");
@@ -349,7 +410,7 @@ function renderResults() {
   }
 
   host.classList.add("result-list");
-  renderItems(results, state.viewMode, host, { page: "search", index: state.index });
+  renderItems(results, host, { page: "search", index: state.index });
   fitLayout();
 }
 
@@ -447,6 +508,7 @@ function fitMap() {
   if (!wrapper || !mapEl || !img) return;
 
   if (window.innerWidth <= 768) {          // mobile: allow natural size + scroll
+    wrapper.style.height = "";
     setMaxH(mapEl, 0);
     setMaxH(img, 0);
     return;
@@ -456,8 +518,15 @@ function fitMap() {
   const legend = card ? card.querySelector(".map-legend") : null;
   const below = (legend ? legend.offsetHeight : 0) + 54; // legend + card/wrapper padding + breathing
   const avail = Math.max(240, window.innerHeight - rect.top - below);
-  setMaxH(mapEl, avail);
-  setMaxH(img, avail);
+  wrapper.style.height = `${Math.round(avail)}px`;
+  // The image must fit inside the wrapper's content box, not underneath its
+  // padding/border; otherwise a small vertical scrollbar appears.
+  const wrapperStyle = getComputedStyle(wrapper);
+  const verticalChrome = parseFloat(wrapperStyle.paddingTop) + parseFloat(wrapperStyle.paddingBottom)
+    + parseFloat(wrapperStyle.borderTopWidth) + parseFloat(wrapperStyle.borderBottomWidth);
+  const innerHeight = Math.max(200, avail - verticalChrome);
+  setMaxH(mapEl, innerHeight);
+  setMaxH(img, innerHeight);
 }
 
 function fitResults() {
@@ -467,13 +536,24 @@ function fitResults() {
     setMaxH(list, Math.round(window.innerHeight * 0.6));
     return;
   }
-  const rect = list.getBoundingClientRect();
-  const avail = Math.max(180, window.innerHeight - rect.top - 28);
-  setMaxH(list, avail);
+  // Desktop height is controlled by the equal-height sidebar/map columns.
+  setMaxH(list, 0);
+}
+
+function fitHomeColumns() {
+  const sidebar = document.querySelector(".home-layout > .sidebar");
+  const mapPanel = document.querySelector(".home-layout > .map-panel");
+  if (!sidebar || !mapPanel) return;
+  if (window.innerWidth <= 768) {
+    sidebar.style.height = "";
+    return;
+  }
+  sidebar.style.height = `${Math.round(mapPanel.getBoundingClientRect().height)}px`;
 }
 
 function fitLayout() {
   fitMap();
+  fitHomeColumns();
   fitResults();
 }
 

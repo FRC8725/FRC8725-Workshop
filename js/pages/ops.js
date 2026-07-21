@@ -9,7 +9,7 @@ import { initLabels, categoryTag, makeBadge } from "../ui/labels.js";
 import { getItems, getWorkshopMap, getStructures } from "../services/data-service.js";
 import { buildLocationIndex } from "../utils/search.js";
 import {
-  getUsageBoxes, createUsageBox, boxTransferItem, closeUsageBox, deleteUsageBox,
+  getUsageBoxes, createUsageBox, boxTransferItem, boxTakeItems, closeUsageBox, deleteUsageBox,
   getPrepOrders, createPrepOrder, updatePrepOrder, executePrepOrder, deletePrepOrder,
 } from "../services/ops-service.js";
 import { getAuthorizedUserOptions } from "../services/user-service.js";
@@ -42,8 +42,9 @@ const ORDER_STATUS = {
 
 let state = null;
 
-export async function mountPage({ params }) {
+export async function mountPage({ session, params }) {
   state = {
+    session,
     tab: params.get("tab") === "prep" ? "prep" : "boxes",
     boxes: [],
     orders: [],
@@ -170,9 +171,13 @@ function renderBoxes() {
 function renderBoxCard(box) {
   const statusDef = BOX_STATUS[box.status] || BOX_STATUS.active;
   const entries = sortByName(box.items || [], (entry) => entry.name);
-  const card = el("article", { class: "ops-card", "data-box-id": box.id });
+  const canManage = canManageBox(box);
+  const card = el("article", { class: "ops-card usage-box-card", "data-box-id": box.id });
+  card.tabIndex = 0;
+  card.setAttribute("role", "button");
+  card.setAttribute("aria-label", `打開 ${box.userName || "使用者"}的盒子，共 ${entries.length} 項物品`);
 
-  card.appendChild(el("div", { class: "ops-card-head" },
+  const head = el("div", { class: "ops-card-head" },
     el("div", { class: "ops-card-title" },
       el("strong", {}, box.userName || "（未指定使用者）"),
       makeBadge(statusDef.label, statusDef.color),
@@ -180,13 +185,14 @@ function renderBoxCard(box) {
     el("div", { class: "ops-card-meta" },
       el("span", {}, `建立：${formatDateTime(box.createdAt) || "—"}（${box.createdByName || "—"}）`),
     ),
-  ));
+  );
+  card.appendChild(head);
 
-  const list = el("div", { class: "ops-entry-list" });
+  const list = el("div", { class: "ops-entry-list usage-box-entries" });
   if (!entries.length) {
     list.appendChild(el("div", { class: "section-empty" }, "（盒子目前是空的）"));
   } else {
-    for (const entry of entries) {
+    for (const entry of entries.slice(0, 3)) {
       list.appendChild(el("div", { class: "ops-entry", "data-entry-item-id": entry.itemId },
         categoryTag(entry.category),
         el("span", { class: "ops-entry-name", title: entry.name }, entry.name),
@@ -197,6 +203,9 @@ function renderBoxCard(box) {
           : null,
       ));
     }
+    if (entries.length > 3) {
+      list.appendChild(el("div", { class: "usage-box-more" }, `另有 ${entries.length - 3} 項`));
+    }
   }
   card.appendChild(list);
 
@@ -204,15 +213,77 @@ function renderBoxCard(box) {
   if (box.status === "active") {
     actions.appendChild(el("button", { class: "btn btn-primary btn-sm", type: "button", "data-action": "take" },
       el("span", { html: icon("plus", { size: "14px" }) }), "取用物品"));
-    if (!entries.length) {
+    if (!entries.length && canManage) {
       actions.appendChild(el("button", { class: "btn btn-ghost btn-sm", type: "button", "data-action": "close-box" }, "標記結束"));
     }
   }
-  if (!entries.length) {
+  if (!entries.length && canManage) {
     actions.appendChild(el("button", { class: "btn btn-danger btn-sm", type: "button", "data-action": "delete-box" }, "刪除"));
   }
   card.appendChild(actions);
+  card.addEventListener("click", (event) => {
+    if (event.target.closest("button, a, input, select, textarea")) return;
+    openBoxView(box);
+  });
+  card.addEventListener("keydown", (event) => {
+    if ((event.key === "Enter" || event.key === " ") && event.target === card) {
+      event.preventDefault();
+      openBoxView(box);
+    }
+  });
   return card;
+}
+
+function canManageBox(box) {
+  const session = state?.session;
+  if (!session) return false;
+  if (session.role === "admin") return true;
+  return Boolean(box.createdByUid && box.createdByUid === session.user?.uid);
+}
+
+function openBoxView(box) {
+  const statusDef = BOX_STATUS[box.status] || BOX_STATUS.active;
+  const entries = sortByName(box.items || [], (entry) => entry.name);
+  const body = el("div", { class: "usage-box-view" });
+  body.appendChild(el("div", { class: "usage-box-view-head" },
+    el("div", { class: "ops-card-title" },
+      el("strong", {}, box.userName || "（未指定使用者）"),
+      makeBadge(statusDef.label, statusDef.color)),
+    el("div", { class: "ops-card-meta" },
+      el("span", {}, `建立：${formatDateTime(box.createdAt) || "—"}（${box.createdByName || "—"}）`),
+      el("span", {}, `盒內共有 ${entries.length} 項物品`)),
+  ));
+
+  const list = el("div", { class: "ops-entry-list usage-box-view-entries" });
+  if (!entries.length) {
+    list.appendChild(el("div", { class: "section-empty" }, "（盒子目前是空的）"));
+  } else {
+    for (const entry of entries) {
+      const row = el("div", { class: "ops-entry", "data-entry-item-id": entry.itemId },
+        categoryTag(entry.category),
+        el("span", { class: "ops-entry-name", title: entry.name }, entry.name),
+        el("span", { class: "ops-entry-qty" }, `${entry.quantity}${entry.unit || ""}`),
+        itemLocation(entry.itemId));
+      if (box.status === "active") {
+        row.appendChild(el("button", {
+          class: "btn btn-ghost btn-sm", type: "button",
+          onclick: () => openReturnModal(box, entry),
+        }, "歸還"));
+      }
+      list.appendChild(row);
+    }
+  }
+  body.appendChild(list);
+
+  const footer = el("div", { class: "usage-box-view-actions" });
+  const done = el("button", { class: "btn btn-ghost", type: "button", onclick: () => closeModal() }, "關閉");
+  footer.appendChild(done);
+  if (box.status === "active") {
+    footer.appendChild(el("button", {
+      class: "btn btn-primary", type: "button", onclick: () => openTakeModal(box),
+    }, el("span", { html: icon("plus", { size: "14px" }) }), "取用物品"));
+  }
+  openModal({ title: "盒子內容", body, footer, maxWidth: "760px", className: "usage-box-modal" });
 }
 
 function wireBoxDelegation() {
@@ -317,33 +388,37 @@ function itemLocation(itemId) {
   const storage = state.locationIndex?.storageName(item.storageId) || item.storageId;
   const section = state.locationIndex?.sectionName(item.storageId, item.sectionId) || item.sectionId;
   return el("span", { class: "ops-entry-location", title: formatLocation(storage, section) || "未分類" },
-    el("span", { html: icon("map", { size: "12px" }) }),
     formatLocation(storage, section) || "未分類");
 }
 
 function openTakeModal(box) {
-  let selected = null;
+  // 可連續選取多個品項，最後一次確認才寫入。cart: Map<itemId, {item, quantity}>
+  const cart = new Map();
   const body = el("div", { class: "take-modal" });
   body.innerHTML = `
     <div class="field">
-      <label for="take-search">搜尋工具或材料</label>
+      <label for="take-search">搜尋工具或材料（點一下加入清單）</label>
       <input id="take-search" type="search" placeholder="輸入名稱、標籤…" autocomplete="off">
     </div>
     <div class="take-candidates" id="take-candidates" role="listbox" aria-label="可取用的品項"></div>
-    <div class="take-selected" id="take-selected" hidden>
-      <div class="take-selected-info" id="take-selected-info"></div>
-      <div class="field" style="margin-top:10px">
-        <label for="take-qty">數量 <span class="req">*</span></label>
-        <input id="take-qty" type="number" min="1" step="1" value="1">
-        <div class="error-text" data-for="take-qty"></div>
-      </div>
-    </div>
+    <div class="take-cart-title card-title" style="margin:14px 0 8px">待取用清單（<span id="take-cart-count">0</span>）</div>
+    <div class="ops-entry-list" id="take-cart"></div>
   `;
   const searchInput = body.querySelector("#take-search");
   const candidatesHost = body.querySelector("#take-candidates");
-  const selectedHost = body.querySelector("#take-selected");
-  const selectedInfo = body.querySelector("#take-selected-info");
-  const qtyInput = body.querySelector("#take-qty");
+  const cartHost = body.querySelector("#take-cart");
+  const cartCount = body.querySelector("#take-cart-count");
+
+  function availFor(item) { return Number(item.quantity) || 0; }
+
+  function addToCart(item) {
+    const existing = cart.get(item.id);
+    const nextQty = (existing?.quantity || 0) + 1;
+    if (nextQty > availFor(item)) { notify.warning(`「${item.name}」可用數量只剩 ${availFor(item)}`); return; }
+    cart.set(item.id, { item, quantity: nextQty });
+    renderCart();
+    renderCandidates();
+  }
 
   function renderCandidates() {
     const query = searchInput.value.trim().toLowerCase();
@@ -358,58 +433,84 @@ function openTakeModal(box) {
       return;
     }
     for (const item of candidates.slice(0, 40)) {
+      const inCart = cart.get(item.id);
       const row = el("button", {
         type: "button",
-        class: "take-candidate" + (selected?.id === item.id ? " is-selected" : ""),
+        class: "take-candidate" + (inCart ? " is-selected" : ""),
         role: "option",
-        "aria-selected": selected?.id === item.id ? "true" : "false",
       },
         categoryTag(item.category),
         el("span", { class: "take-candidate-name" }, item.name),
         itemLocation(item.id),
         el("span", { class: "take-candidate-avail" }, availabilityText(item)),
+        inCart ? el("span", { class: "take-candidate-incart" }, `已加 ${inCart.quantity}`) : null,
       );
-      row.addEventListener("click", () => {
-        selected = item;
-        selectedHost.hidden = false;
-        selectedInfo.replaceChildren(
-          el("strong", {}, item.name),
-          el("span", { class: "take-candidate-avail", style: "margin-left:8px" }, availabilityText(item)),
-        );
-        qtyInput.max = String(Number(item.quantity) || 1);
-        qtyInput.value = "1";
-        renderCandidates();
-        qtyInput.focus();
-      });
+      row.addEventListener("click", () => addToCart(item));
       candidatesHost.appendChild(row);
     }
   }
+
+  function renderCart() {
+    cartCount.textContent = String(cart.size);
+    cartHost.replaceChildren();
+    if (!cart.size) {
+      cartHost.appendChild(el("div", { class: "section-empty" }, "（尚未選擇，點上方品項加入）"));
+      return;
+    }
+    for (const { item, quantity } of cart.values()) {
+      const max = availFor(item);
+      const qtyInput = el("input", {
+        type: "number", min: "1", max: String(max), step: "1", value: String(quantity),
+        class: "take-cart-qty", "aria-label": `${item.name} 數量`,
+      });
+      qtyInput.addEventListener("input", () => {
+        let value = Math.floor(Number(qtyInput.value) || 0);
+        if (value < 1) value = 1;
+        if (value > max) { value = max; qtyInput.value = String(max); notify.warning(`「${item.name}」最多 ${max}`); }
+        cart.set(item.id, { item, quantity: value });
+      });
+      cartHost.appendChild(el("div", { class: "ops-entry" },
+        categoryTag(item.category),
+        el("span", { class: "ops-entry-name", title: item.name }, item.name),
+        qtyInput,
+        el("span", { class: "take-candidate-avail" }, `／${max}`),
+        el("button", {
+          class: "icon-btn danger", type: "button", "aria-label": `移除 ${item.name}`,
+          onclick: () => { cart.delete(item.id); renderCart(); renderCandidates(); },
+        }, "×"),
+      ));
+    }
+  }
+
   searchInput.addEventListener("input", renderCandidates);
   renderCandidates();
+  renderCart();
 
   const footer = el("div", { style: "display:flex; gap:10px" });
   const cancel = el("button", { type: "button", class: "btn btn-ghost" }, "取消");
-  const confirm = el("button", { type: "button", class: "btn btn-primary" }, "放入盒子");
+  const confirm = el("button", { type: "button", class: "btn btn-primary" }, "全部放入盒子");
   footer.append(cancel, confirm);
-  openModal({ title: `取用物品 → ${box.userName || "使用者"}`, body, footer, maxWidth: "520px" });
+  openModal({ title: `取用物品 → ${box.userName || "使用者"}`, body, footer, maxWidth: "560px" });
   cancel.addEventListener("click", () => closeModal());
 
   confirm.addEventListener("click", async () => {
-    if (!selected) { notify.warning("請先選擇一個品項"); return; }
-    const quantity = Number(qtyInput.value);
-    const max = Number(selected.quantity) || 0;
-    if (!Number.isInteger(quantity) || quantity <= 0) { notify.warning("數量必須是正整數"); return; }
-    if (quantity > max) { notify.warning(`數量不可超過目前可用數量（${max}）`); return; }
+    if (!cart.size) { notify.warning("請至少選擇一個品項"); return; }
+    const entries = [];
+    for (const { item, quantity } of cart.values()) {
+      if (!Number.isInteger(quantity) || quantity <= 0) { notify.warning(`「${item.name}」數量必須是正整數`); return; }
+      if (quantity > availFor(item)) { notify.warning(`「${item.name}」數量不可超過可用數量（${availFor(item)}）`); return; }
+      entries.push({ itemId: item.id, quantity });
+    }
     confirm.disabled = true; cancel.disabled = true; confirm.textContent = "處理中…";
     try {
-      await boxTransferItem({ boxId: box.id, itemId: selected.id, quantity, action: "take" });
-      notify.success(`已將「${selected.name}」×${quantity} 交給「${box.userName || "使用者"}」`);
+      await boxTakeItems({ boxId: box.id, entries });
+      notify.success(`已將 ${entries.length} 項物品交給「${box.userName || "使用者"}」`);
       closeModal();
       await refreshOps({ orders: false });
     } catch (err) {
       console.error(err);
       notify.danger("取用失敗：" + errorText(err));
-      confirm.disabled = false; cancel.disabled = false; confirm.textContent = "放入盒子";
+      confirm.disabled = false; cancel.disabled = false; confirm.textContent = "全部放入盒子";
       await refreshOps({ orders: false });
     }
   });
@@ -515,7 +616,7 @@ function renderPrep() {
 
 function renderPrepCard(order) {
   const statusDef = ORDER_STATUS[order.status] || ORDER_STATUS.draft;
-  const card = el("article", { class: "ops-card", "data-order-id": order.id });
+  const card = el("article", { class: "ops-card prep-order-card", "data-order-id": order.id });
   card.appendChild(el("div", { class: "ops-card-head" },
     el("div", { class: "ops-card-title" },
       el("strong", {}, order.name),

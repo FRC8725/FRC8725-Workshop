@@ -7,9 +7,9 @@
       "columns": 1,
       "rows": 3,
       "sections": [
-        { "id": "s0", "name": "櫃子上方", "row": 1, "column": 1, "rowSpan": 1, "columnSpan": 1, "type": "shelf" },
-        { "id": "s1", "name": "上層板", "row": 2, "column": 1, "rowSpan": 1, "columnSpan": 1, "type": "shelf" },
-        { "id": "s2", "name": "下層板", "row": 3, "column": 1, "rowSpan": 1, "columnSpan": 1, "type": "shelf" }
+        { "id": "s0", "name": "櫃子上方", "row": 1, "column": 1, "rowSpan": 1, "columnSpan": 1, "type": "top-surface" },
+        { "id": "s1", "name": "上層板",   "row": 2, "column": 1, "rowSpan": 1, "columnSpan": 1, "type": "shelf" },
+        { "id": "s2", "name": "下層板",   "row": 3, "column": 1, "rowSpan": 1, "columnSpan": 1, "type": "shelf" }
       ]
     },
     {
@@ -19,7 +19,7 @@
       "columns": 1,
       "rows": 8,
       "sections": [
-        { "id": "c0", "name": "頂部", "row": 1, "column": 1, "rowSpan": 1, "columnSpan": 1, "type": "top-surface" },
+        { "id": "c0", "name": "頂部",    "row": 1, "column": 1, "rowSpan": 1, "columnSpan": 1, "type": "top-surface" },
         { "id": "c1", "name": "第 1 層", "row": 2, "column": 1, "rowSpan": 1, "columnSpan": 1, "type": "drawer" },
         { "id": "c2", "name": "第 2 層", "row": 3, "column": 1, "rowSpan": 1, "columnSpan": 1, "type": "drawer" },
         { "id": "c3", "name": "第 3 層", "row": 4, "column": 1, "rowSpan": 1, "columnSpan": 1, "type": "drawer" },
@@ -36,7 +36,7 @@
       "columns": 1,
       "rows": 5,
       "sections": [
-        { "id": "t0", "name": "頂部", "row": 1, "column": 1, "rowSpan": 1, "columnSpan": 1, "type": "top-surface" },
+        { "id": "t0", "name": "頂部",    "row": 1, "column": 1, "rowSpan": 1, "columnSpan": 1, "type": "top-surface" },
         { "id": "t1", "name": "第 1 層", "row": 2, "column": 1, "rowSpan": 1, "columnSpan": 1, "type": "shelf" },
         { "id": "t2", "name": "第 2 層", "row": 3, "column": 1, "rowSpan": 1, "columnSpan": 1, "type": "shelf" },
         { "id": "t3", "name": "第 3 層", "row": 4, "column": 1, "rowSpan": 1, "columnSpan": 1, "type": "shelf" },
@@ -73,61 +73,44 @@
       "id": "pegboard-grid",
       "name": "洞洞板",
       "layoutType": "grid",
-      "columns": 4,
-      "rows": 5,
+      "columns": 3,
+      "rows": 1,
       "sections": [
-        { "id": "p11", "name": "A 區", "row": 1, "column": 1, "rowSpan": 1, "columnSpan": 1, "type": "hook" },
-        { "id": "p12", "name": "B 區", "row": 1, "column": 2, "rowSpan": 1, "columnSpan": 1, "type": "hook" },
-        { "id": "p13", "name": "C 區", "row": 1, "column": 3, "rowSpan": 1, "columnSpan": 1, "type": "hook" },
-        { "id": "p14", "name": "D 區", "row": 1, "column": 4, "rowSpan": 1, "columnSpan": 1, "type": "hook" },
-        { "id": "p21", "name": "E 區", "row": 2, "column": 1, "rowSpan": 1, "columnSpan": 2, "type": "hook" },
-        { "id": "p23", "name": "F 區", "row": 2, "column": 3, "rowSpan": 1, "columnSpan": 2, "type": "hook" },
-        { "id": "p31", "name": "G 區", "row": 3, "column": 1, "rowSpan": 1, "columnSpan": 1, "type": "hook" },
-        { "id": "p32", "name": "H 區", "row": 3, "column": 2, "rowSpan": 1, "columnSpan": 1, "type": "hook" },
-        { "id": "p33", "name": "I 區", "row": 3, "column": 3, "rowSpan": 1, "columnSpan": 1, "type": "hook" },
-        { "id": "p34", "name": "J 區", "row": 3, "column": 4, "rowSpan": 1, "columnSpan": 1, "type": "hook" },
-        { "id": "p41", "name": "大型工具區", "row": 4, "column": 1, "rowSpan": 2, "columnSpan": 4, "type": "hook" }
+        { "id": "p1", "name": "左邊", "row": 1, "column": 1, "rowSpan": 1, "columnSpan": 1, "type": "pegboard" },
+        { "id": "p2", "name": "中間", "row": 1, "column": 2, "rowSpan": 1, "columnSpan": 1, "type": "pegboard" },
+        { "id": "p3", "name": "右邊", "row": 1, "column": 3, "rowSpan": 1, "columnSpan": 1, "type": "pegboard" }
       ]
     },
     {
       "id": "bins-grid",
       "name": "零件快取盒",
       "layoutType": "grid",
-      "columns": 10,
-      "rows": 3,
+      "columns": 1,
+      "rows": 6,
       "sections": [
-        { "id": "b1-1", "name": "格1-1", "row": 1, "column": 1, "rowSpan": 1, "columnSpan": 1, "type": "bin" },
-        { "id": "b1-2", "name": "格1-2", "row": 1, "column": 2, "rowSpan": 1, "columnSpan": 1, "type": "bin" },
-        { "id": "b1-3", "name": "格1-3", "row": 1, "column": 3, "rowSpan": 1, "columnSpan": 1, "type": "bin" },
-        { "id": "b1-4", "name": "格1-4", "row": 1, "column": 4, "rowSpan": 1, "columnSpan": 1, "type": "bin" },
-        { "id": "b1-5", "name": "格1-5", "row": 1, "column": 5, "rowSpan": 1, "columnSpan": 1, "type": "bin" },
-        { "id": "b1-6", "name": "格1-6", "row": 1, "column": 6, "rowSpan": 1, "columnSpan": 1, "type": "bin" },
-        { "id": "b1-7", "name": "格1-7", "row": 1, "column": 7, "rowSpan": 1, "columnSpan": 1, "type": "bin" },
-        { "id": "b1-8", "name": "格1-8", "row": 1, "column": 8, "rowSpan": 1, "columnSpan": 1, "type": "bin" },
-        { "id": "b1-9", "name": "格1-9", "row": 1, "column": 9, "rowSpan": 1, "columnSpan": 1, "type": "bin" },
-        { "id": "b1-10", "name": "格1-10", "row": 1, "column": 10, "rowSpan": 1, "columnSpan": 1, "type": "bin" },
-
-        { "id": "b2-1", "name": "格2-1", "row": 2, "column": 1, "rowSpan": 1, "columnSpan": 1, "type": "bin" },
-        { "id": "b2-2", "name": "格2-2", "row": 2, "column": 2, "rowSpan": 1, "columnSpan": 1, "type": "bin" },
-        { "id": "b2-3", "name": "格2-3", "row": 2, "column": 3, "rowSpan": 1, "columnSpan": 1, "type": "bin" },
-        { "id": "b2-4", "name": "格2-4", "row": 2, "column": 4, "rowSpan": 1, "columnSpan": 1, "type": "bin" },
-        { "id": "b2-5", "name": "格2-5", "row": 2, "column": 5, "rowSpan": 1, "columnSpan": 1, "type": "bin" },
-        { "id": "b2-6", "name": "格2-6", "row": 2, "column": 6, "rowSpan": 1, "columnSpan": 1, "type": "bin" },
-        { "id": "b2-7", "name": "格2-7", "row": 2, "column": 7, "rowSpan": 1, "columnSpan": 1, "type": "bin" },
-        { "id": "b2-8", "name": "格2-8", "row": 2, "column": 8, "rowSpan": 1, "columnSpan": 1, "type": "bin" },
-        { "id": "b2-9", "name": "格2-9", "row": 2, "column": 9, "rowSpan": 1, "columnSpan": 1, "type": "bin" },
-        { "id": "b2-10", "name": "格2-10", "row": 2, "column": 10, "rowSpan": 1, "columnSpan": 1, "type": "bin" },
-
-        { "id": "b3-1", "name": "格3-1", "row": 3, "column": 1, "rowSpan": 1, "columnSpan": 1, "type": "bin" },
-        { "id": "b3-2", "name": "格3-2", "row": 3, "column": 2, "rowSpan": 1, "columnSpan": 1, "type": "bin" },
-        { "id": "b3-3", "name": "格3-3", "row": 3, "column": 3, "rowSpan": 1, "columnSpan": 1, "type": "bin" },
-        { "id": "b3-4", "name": "格3-4", "row": 3, "column": 4, "rowSpan": 1, "columnSpan": 1, "type": "bin" },
-        { "id": "b3-5", "name": "格3-5", "row": 3, "column": 5, "rowSpan": 1, "columnSpan": 1, "type": "bin" },
-        { "id": "b3-6", "name": "格3-6", "row": 3, "column": 6, "rowSpan": 1, "columnSpan": 1, "type": "bin" },
-        { "id": "b3-7", "name": "格3-7", "row": 3, "column": 7, "rowSpan": 1, "columnSpan": 1, "type": "bin" },
-        { "id": "b3-8", "name": "格3-8", "row": 3, "column": 8, "rowSpan": 1, "columnSpan": 1, "type": "bin" },
-        { "id": "b3-9", "name": "格3-9", "row": 3, "column": 9, "rowSpan": 1, "columnSpan": 1, "type": "bin" },
-        { "id": "b3-10", "name": "格3-10", "row": 3, "column": 10, "rowSpan": 1, "columnSpan": 1, "type": "bin" }
+        { "id": "br1", "name": "第 1 列", "row": 1, "column": 1, "rowSpan": 1, "columnSpan": 1, "type": "bin-row" },
+        { "id": "br2", "name": "第 2 列", "row": 2, "column": 1, "rowSpan": 1, "columnSpan": 1, "type": "bin-row" },
+        { "id": "br3", "name": "第 3 列", "row": 3, "column": 1, "rowSpan": 1, "columnSpan": 1, "type": "bin-row" },
+        { "id": "br4", "name": "第 4 列", "row": 4, "column": 1, "rowSpan": 1, "columnSpan": 1, "type": "bin-row" },
+        { "id": "br5", "name": "第 5 列", "row": 5, "column": 1, "rowSpan": 1, "columnSpan": 1, "type": "bin-row" },
+        { "id": "br6", "name": "第 6 列", "row": 6, "column": 1, "rowSpan": 1, "columnSpan": 1, "type": "bin-row" }
+      ]
+    },
+    {
+      "id": "mat-shelf-32-33",
+      "name": "材料層架",
+      "layoutType": "grid",
+      "columns": 2,
+      "rows": 5,
+      "sections": [
+        { "id": "s1",   "name": "第 1 層",    "row": 1, "column": 1, "rowSpan": 1, "columnSpan": 2, "type": "shelf" },
+        { "id": "s2",   "name": "第 2 層",    "row": 2, "column": 1, "rowSpan": 1, "columnSpan": 2, "type": "shelf" },
+        { "id": "s3-1", "name": "第 3-32 層", "row": 3, "column": 1, "rowSpan": 1, "columnSpan": 1, "type": "shelf" },
+        { "id": "s3-2", "name": "第 3-33 層", "row": 3, "column": 2, "rowSpan": 1, "columnSpan": 1, "type": "shelf" },
+        { "id": "s4-1", "name": "第 4-32 層", "row": 4, "column": 1, "rowSpan": 1, "columnSpan": 1, "type": "shelf" },
+        { "id": "s4-2", "name": "第 4-33 層", "row": 4, "column": 2, "rowSpan": 1, "columnSpan": 1, "type": "shelf" },
+        { "id": "s5-1", "name": "第 5-32 層", "row": 5, "column": 1, "rowSpan": 1, "columnSpan": 1, "type": "shelf" },
+        { "id": "s5-2", "name": "第 5-33 層", "row": 5, "column": 2, "rowSpan": 1, "columnSpan": 1, "type": "shelf" }
       ]
     },
     {

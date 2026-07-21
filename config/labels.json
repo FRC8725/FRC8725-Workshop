@@ -9,16 +9,19 @@
     { "name": "material", "color": "#e29a8a", "label": "材料" }
   ],
   "storageTypes": [
-    { "name": "drawer",   "label": "抽屜" },
-    { "name": "cabinet",   "label": "工具櫃" },
-    { "name": "tool-cart", "label": "工具車" },
-    { "name": "dry-box",   "label": "防潮箱" },
-    { "name": "shelf",     "label": "層架" },
-    { "name": "pegboard",  "label": "洞洞板" },
-    { "name": "machine",   "label": "機台" },
-    { "name": "quick-box", "label": "零件快取盒" },
-    { "name": "table",     "label": "桌子" },
-    { "name": "top-surface","label": "頂部置物面" }
+    { "name": "drawer",      "label": "抽屜" },
+    { "name": "cabinet",     "label": "工具櫃" },
+    { "name": "tool-cart",   "label": "工具車" },
+    { "name": "dry-box",     "label": "防潮箱" },
+    { "name": "shelf",       "label": "層架" },
+    { "name": "pegboard",    "label": "洞洞板" },
+    { "name": "machine",     "label": "機台" },
+    { "name": "quick-box",   "label": "零件快取盒" },
+    { "name": "table",       "label": "桌子" },
+    { "name": "top-surface", "label": "頂部置物面" },
+    { "name": "hook",        "label": "掛勾" },
+    { "name": "bin-row",     "label": "列" },
+    { "name": "area",        "label": "區域" }
   ],
   "tags": [
     { "name": "有財產標籤", "color": "#87d1ff", "label": "有財產標籤" }

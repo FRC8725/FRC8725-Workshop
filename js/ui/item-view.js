@@ -1,42 +1,15 @@
 // js/item-view.js
 //
-// 共用的物品渲染邏輯：卡片模式 / 列表模式、模式切換元件、模式偏好（localStorage）。
-// 櫃子詳細頁與首頁搜尋結果都使用這裡的渲染函式，避免重複程式碼。
-//
-// 兩種模式共用：狀態文字、數量格式化、標籤、位置格式化、圖片錯誤處理、
-// 編輯/刪除/開啟操作（以 data-action 屬性搭配事件委派）、Hover 高亮所需的 data 屬性。
+// 櫃子詳細頁與首頁搜尋結果共用的物品列表 renderer。
+// 集中處理狀態、數量、標籤、位置與 data-action 操作。
 
-import { el, icon, isLowStock, isOutOfStock, formatLocation, formatDateTime } from "../utils/utils.js";
-import { formatMaterialQuantity, isToolTakable } from "../utils/item-logic.js";
+import { el, icon, isLowStock, isOutOfStock, formatLocation } from "../utils/utils.js";
+import { formatMaterialQuantity } from "../utils/item-logic.js";
 import { statusBadge, categoryTag, tagChip } from "./labels.js";
-
-const PLACEHOLDER = "images/placeholder-item.svg";
-
-/* ---------------- view mode persistence ---------------- */
-
-const VIEW_KEYS = {
-  // v2 resets the former card default once, while preserving future user choices.
-  storage: "workshop-storage-view-mode-v2",
-  search: "workshop-search-view-mode-v2",
-};
-const DEFAULT_VIEW = { storage: "list", search: "list" };
-
-export function getViewMode(page) {
-  try {
-    const v = localStorage.getItem(VIEW_KEYS[page]);
-    if (v === "card" || v === "list") return v;
-  } catch { /* ignore */ }
-  return DEFAULT_VIEW[page] || "list";
-}
-
-export function setViewMode(page, mode) {
-  if (mode !== "card" && mode !== "list") return;
-  try { localStorage.setItem(VIEW_KEYS[page], mode); } catch { /* ignore */ }
-}
 
 /* ---------------- shared formatters ---------------- */
 
-/** Status and quantity display shared by both modes/pages. */
+/** Status and quantity display shared by both pages. */
 export function statusOrQty(item) {
   const q = Number(item.quantity);
   if (item.category === "tool") {
@@ -70,42 +43,25 @@ function locationText(item, ctx, { full = true } = {}) {
   return formatLocation(storageName, sectionName) || "未分類";
 }
 
-function itemThumb(item, cls) {
-  const img = el("img", { class: cls, src: item.imageUrl || PLACEHOLDER, alt: "", loading: "lazy" });
-  img.addEventListener("error", () => {
-    if (img.dataset.fallback) return;
-    img.dataset.fallback = "1";
-    img.src = PLACEHOLDER;
-  });
-  return img;
-}
-
 function applyDataAttrs(node, item) {
   node.dataset.storageId = item.storageId || "";
   node.dataset.sectionId = item.sectionId || "";
   node.dataset.itemId = item.id || "";
 }
 
-/** Action buttons carry data-action; pages wire them via event delegation. */
+/**
+ * Action buttons carry data-action; pages wire them via event delegation.
+ * 借用工具與取用材料只在「作業」頁進行。這裡僅保留材料的「補充」快速按鈕，
+ * 不再提供工具的使用／歸還與材料的取用快速按鈕。
+ */
 function actionButtons(item, ctx) {
   const wrap = el("div", { class: "item-actions" });
-  const quantity = Number(item.quantity);
-  const specialTool = item.category === "tool" && !isToolTakable(item);
-  const canDecrease = Number.isFinite(quantity) && quantity > 0 && !specialTool;
-  const total = item.totalQuantity == null ? NaN : Number(item.totalQuantity);
-  const canIncrease = !specialTool
-    && (item.category !== "tool" || quantity < (Number.isFinite(total) ? total : quantity));
-  const decreaseLabel = item.category === "tool" ? "使用" : "取用";
-  const increaseLabel = item.category === "tool" ? "歸還" : "補充";
-  wrap.appendChild(el("button", {
-    class: "btn btn-ghost btn-sm quick-quantity", type: "button", "data-action": "quantity-decrease",
-    disabled: canDecrease ? null : "disabled", "aria-label": `${decreaseLabel}一個 ${item.name}`,
-  }, decreaseLabel));
-  wrap.appendChild(el("button", {
-    class: "btn btn-primary btn-sm quick-quantity", type: "button", "data-action": "quantity-increase",
-    disabled: canIncrease ? null : "disabled",
-    "aria-label": `${increaseLabel}一個 ${item.name}`,
-  }, increaseLabel));
+  if (item.category === "material") {
+    wrap.appendChild(el("button", {
+      class: "btn btn-primary btn-sm quick-quantity", type: "button", "data-action": "quantity-increase",
+      "aria-label": `補充一個 ${item.name}`,
+    }, "補充"));
+  }
   if (ctx.page !== "search") {
     wrap.appendChild(el("button", {
       class: "icon-btn", type: "button", "data-action": "edit", title: "編輯",
@@ -119,60 +75,9 @@ function actionButtons(item, ctx) {
   return wrap;
 }
 
-/* ---------------- card mode ---------------- */
+/* ---------------- item row ---------------- */
 
-export function renderItemCard(item, ctx) {
-  const card = el("div", { class: "item-card" });
-  applyDataAttrs(card, item);
-  if (ctx.page === "search") {
-    card.tabIndex = 0;
-    card.setAttribute("role", "button");
-    card.setAttribute("aria-label", `${item.name}，位於 ${locationText(item, ctx)}`);
-  }
-
-  const body = el("div", { class: "item-card-body" });
-
-  body.appendChild(el("div", { class: "item-top" },
-    el("div", { class: "item-name" }, item.name),
-    actionButtons(item, ctx),
-  ));
-
-  body.appendChild(el("div", { class: "item-sub" }, categoryTag(item.category), statusOrQty(item)));
-
-  body.appendChild(el("div", { class: "item-loc" },
-    el("span", { class: "item-loc-ico", html: icon("map", { size: "13px" }) }),
-    locationText(item, ctx),
-  ));
-
-  if (item.description) {
-    body.appendChild(el("div", { class: "item-desc" }, item.description));
-  }
-
-  if (Array.isArray(item.tags) && item.tags.length) {
-    const tags = el("div", { class: "tag-list item-tags" });
-    for (const t of item.tags) tags.appendChild(tagChip(t));
-    body.appendChild(tags);
-  }
-
-  if (ctx.page === "storage") {
-    const u = formatDateTime(item.updatedAt);
-    if (u) body.appendChild(el("div", { class: "item-updated" }, `最後更新：${u}`));
-  }
-
-  // storage cards show a thumbnail; search panel stays compact without one
-  if (ctx.page === "storage") {
-    const media = el("div", { class: "item-card-media" }, itemThumb(item, "item-thumb"));
-    card.append(media, body);
-    card.classList.add("has-media");
-  } else {
-    card.append(body);
-  }
-  return card;
-}
-
-/* ---------------- list mode ---------------- */
-
-export function renderItemListRow(item, ctx) {
+export function renderItem(item, ctx) {
   const row = el("div", { class: "item-list-row" });
   applyDataAttrs(row, item);
   if (ctx.page === "search") {
@@ -185,7 +90,7 @@ export function renderItemListRow(item, ctx) {
   row.appendChild(el("span", { class: "row-name", title: item.name }, item.name));
   row.appendChild(el("span", { class: "row-status" }, statusOrQty(item)));
   row.appendChild(el("span", { class: "row-loc", title: locationText(item, ctx) },
-    locationText(item, ctx, { full: ctx.page === "search" })));
+    el("span", { class: "row-loc-text" }, locationText(item, ctx, { full: ctx.page === "search" }))));
 
   const firstTag = Array.isArray(item.tags) ? item.tags[0] : null;
   const tagCell = el("span", { class: "row-tag" });
@@ -196,61 +101,16 @@ export function renderItemListRow(item, ctx) {
   return row;
 }
 
-/* ---------------- unified entry points ---------------- */
-
-/** Render a single item in the given mode. */
-export function renderItem(item, viewMode, ctx) {
-  return viewMode === "list" ? renderItemListRow(item, ctx) : renderItemCard(item, ctx);
-}
-
 /**
  * Render a flat list of items into a container (used by search results).
- * Sets container view classes so CSS can lay out card vs list.
+ * Sets the page context used by responsive list styling.
  */
-export function renderItems(items, viewMode, container, ctx) {
+export function renderItems(items, container, ctx) {
   container.classList.add("items-container");
-  container.classList.toggle("view-card", viewMode === "card");
-  container.classList.toggle("view-list", viewMode === "list");
+  container.classList.add("view-list");
   container.dataset.page = ctx.page;
   container.innerHTML = "";
   const frag = document.createDocumentFragment();
-  for (const it of items) frag.appendChild(renderItem(it, viewMode, ctx));
+  for (const it of items) frag.appendChild(renderItem(it, ctx));
   container.appendChild(frag);
-}
-
-/* ---------------- view mode switcher ---------------- */
-
-/**
- * Build a card/list switcher. Calls onChange(mode) when a button is clicked.
- * @returns {HTMLElement}
- */
-export function renderViewSwitcher(current, onChange) {
-  const wrap = el("div", { class: "view-mode-switcher", role: "group", "aria-label": "物品顯示方式" });
-  const defs = [
-    { mode: "card", label: "卡片", ic: "box" },
-    { mode: "list", label: "列表", ic: "list" },
-  ];
-  for (const d of defs) {
-    const active = d.mode === current;
-    const btn = el("button", {
-      type: "button",
-      class: "view-mode-button" + (active ? " is-active" : ""),
-      "data-view-mode": d.mode,
-      "aria-pressed": active ? "true" : "false",
-    },
-      el("span", { class: "vm-ico", html: icon(d.ic, { size: "15px" }) }),
-      el("span", {}, d.label),
-    );
-    btn.addEventListener("click", () => {
-      if (btn.getAttribute("aria-pressed") === "true") return;
-      wrap.querySelectorAll(".view-mode-button").forEach((b) => {
-        const on = b === btn;
-        b.classList.toggle("is-active", on);
-        b.setAttribute("aria-pressed", on ? "true" : "false");
-      });
-      onChange(d.mode);
-    });
-    wrap.appendChild(btn);
-  }
-  return wrap;
 }

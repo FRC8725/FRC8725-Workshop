@@ -319,6 +319,85 @@ export async function fbBoxTransferItem({ boxId, itemId, quantity, action }) {
   return resultValue;
 }
 
+/**
+ * 一次取用多個品項到同一盒子（單一交易，全部成功或全部失敗）。
+ * @param {{boxId:string, entries:Array<{itemId:string, quantity:number}>}} cfg
+ */
+export async function fbBoxTakeItems({ boxId, entries }) {
+  await initFirebase();
+  const actor = requireActor();
+  // 合併重複品項的數量，並驗證輸入。
+  const wanted = new Map();
+  for (const entry of entries || []) {
+    const qty = Number(entry.quantity);
+    if (!entry.itemId) continue;
+    if (!Number.isInteger(qty) || qty <= 0) {
+      throw Object.assign(new Error("數量必須是正整數"), { code: "invalid-quantity" });
+    }
+    wanted.set(entry.itemId, (wanted.get(entry.itemId) || 0) + qty);
+  }
+  if (!wanted.size) throw Object.assign(new Error("請至少選擇一個品項"), { code: "invalid-quantity" });
+
+  const boxRef = sdk.doc(db, BOXES, boxId);
+  const itemRefs = new Map([...wanted.keys()].map((id) => [id, sdk.doc(db, COLLECTION, id)]));
+
+  let committedVersion = null;
+  const resultValue = await sdk.runTransaction(db, async (transaction) => {
+    // 交易要求先讀後寫：一次讀盒子與所有品項。
+    const boxSnap = await transaction.get(boxRef);
+    if (!boxSnap.exists()) throw Object.assign(new Error("找不到盒子"), { code: "not-found" });
+    const box = { ...boxSnap.data(), id: boxId };
+    if (box.status === "closed") throw Object.assign(new Error("此盒子已結束，無法再操作"), { code: "box-closed" });
+
+    const itemSnaps = new Map();
+    for (const [id, ref] of itemRefs) itemSnaps.set(id, await transaction.get(ref));
+
+    const entriesOut = Array.isArray(box.items) ? box.items.map((entry) => ({ ...entry })) : [];
+    const applied = [];
+    for (const [id, qty] of wanted) {
+      const snap = itemSnaps.get(id);
+      if (!snap.exists()) throw Object.assign(new Error("找不到物品"), { code: "not-found" });
+      const item = { ...snap.data(), id };
+      if (item.category === "tool" && !isToolTakable(item)) {
+        throw Object.assign(new Error(`「${item.name}」為特殊狀態，無法取用`), { code: "special-status" });
+      }
+      let result;
+      try {
+        result = applyQuantityChange(item, -qty); // 邊界與工具狀態統一處理
+      } catch (err) {
+        if (err.code === "insufficient") {
+          const avail = Math.max(0, Number(item.quantity) || 0);
+          throw Object.assign(new Error(`「${item.name}」可用數量不足（需 ${qty}，剩 ${avail}）`), { code: "insufficient" });
+        }
+        throw err;
+      }
+      const index = entriesOut.findIndex((entry) => entry.itemId === id);
+      const held = index >= 0 ? Math.max(0, Number(entriesOut[index].quantity) || 0) : 0;
+      if (index >= 0) entriesOut[index].quantity = held + qty;
+      else entriesOut.push({ itemId: id, name: item.name || "", category: item.category || null, unit: item.unit ?? null, quantity: held + qty });
+      applied.push({ item, qty, result });
+    }
+
+    for (const { item, result } of applied) {
+      transaction.update(itemRefs.get(item.id), { quantity: result.quantity, status: result.status, updatedAt: sdk.serverTimestamp() });
+    }
+    transaction.update(boxRef, { items: entriesOut, updatedAt: sdk.serverTimestamp() });
+    committedVersion = writeItemsVersion(transaction);
+    // 每筆取用各自一筆 log。
+    for (const { item, qty } of applied) {
+      const logRef = sdk.doc(sdk.collection(db, LOGS));
+      transaction.set(logRef, buildLogPayload({
+        action: "take", source: "box", actor,
+        userName: box.userName, userUid: box.userUid ?? null,
+        item, quantity: qty, box,
+      }));
+    }
+    return { box: { ...box, items: entriesOut } };
+  });
+  rememberItemsVersion(committedVersion);
+  return resultValue;
+}
+
 /** 標記盒子已結束（僅限已無未歸還品項）。 */
 export async function fbCloseUsageBox(boxId) {
   await initFirebase();

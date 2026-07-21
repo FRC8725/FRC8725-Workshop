@@ -1,6 +1,6 @@
 import { firestoreErrorMessage } from "../services/auth-service.js";
 import { compareNames } from "../utils/item-logic.js";
-import { confirmModal } from "../ui/modal.js";
+import { confirmModal, openModal, closeModal } from "../ui/modal.js";
 import { notify } from "../ui/notifications.js";
 import {
   approvePendingUser, deleteAuthorizedUser, deletePendingUser,
@@ -50,18 +50,29 @@ function roleSelect(value, disabled = false) {
   return select;
 }
 
-function identity(user) {
+function identity(user, identityBadge = null) {
   const summary = document.createElement("div");
   summary.className = "user-summary";
   const details = document.createElement("div");
   details.className = "user-identity";
   const name = document.createElement("strong");
   name.textContent = user.displayName || "未設定顯示名稱";
+  const nameLine = document.createElement("div");
+  nameLine.className = "user-name-line";
+  nameLine.appendChild(name);
+  if (identityBadge) nameLine.appendChild(identityBadge);
   const email = document.createElement("span");
   email.textContent = user.email || "無 Email";
-  details.append(name, email);
+  details.append(nameLine, email);
   summary.append(makePhoto(user), details);
   return summary;
+}
+
+function badge(text, kind) {
+  const span = document.createElement("span");
+  span.className = `badge badge-${kind} badge-plain user-badge`;
+  span.textContent = text;
+  return span;
 }
 
 function actionButton(text, className, handler) {
@@ -81,66 +92,45 @@ function actionButton(text, className, handler) {
   return button;
 }
 
-function pendingCard(user) {
-  const card = document.createElement("article");
-  card.className = "user-card";
-  card.appendChild(identity(user));
-  const name = document.createElement("input");
-  name.value = user.displayName || "";
-  name.placeholder = "顯示名稱";
-  const role = roleSelect("member");
-  const form = document.createElement("div");
-  form.className = "user-form";
-  form.append(field("顯示名稱", name), field("Role", role));
-  card.appendChild(form);
+/** Compact row: avatar + name/email + badges + actions. */
+function userRow(user, badges, actions, identityBadge = null) {
+  const row = document.createElement("article");
+  row.className = "user-row";
+  row.append(identity(user, identityBadge));
+  const meta = document.createElement("div");
+  meta.className = "user-row-badges";
+  badges.forEach((b) => b && meta.appendChild(b));
+  const actionWrap = document.createElement("div");
+  actionWrap.className = "user-row-actions";
+  actions.forEach((a) => a && actionWrap.appendChild(a));
+  row.append(meta, actionWrap);
+  return row;
+}
 
-  const actions = document.createElement("div");
-  actions.className = "user-actions";
-  actions.append(
-    actionButton("同意授權", "btn btn-primary", async () => {
-      await approvePendingUser(user, { displayName: name.value, role: role.value });
-      notify.success("已授權使用者");
-      await loadUsers();
-    }),
-    actionButton("刪除申請", "btn btn-danger", async () => {
-      const confirmed = await confirmModal({
-        title: "刪除等待申請",
-        message: `確定刪除 ${user.email || "此帳號"} 的申請嗎？`,
-        detail: "刪除後，此帳號仍可再次登入並重新申請授權。",
-        confirmText: "刪除申請", danger: true,
-      });
-      if (!confirmed) return;
-      await deletePendingUser(user.uid);
-      notify.success("已刪除申請");
-      await loadUsers();
-    }),
-  );
-  card.appendChild(actions);
-  return card;
+function pendingCard(user) {
+  return userRow(user,
+    [badge("等待授權", "warning")],
+    [
+      actionButton("同意", "btn btn-primary btn-sm", () => openApproveModal(user)),
+      actionButton("刪除", "btn btn-ghost btn-sm", async () => {
+        const confirmed = await confirmModal({
+          title: "刪除等待申請",
+          message: `確定刪除 ${user.email || "此帳號"} 的申請嗎？`,
+          detail: "刪除後，此帳號仍可再次登入並重新申請授權。",
+          confirmText: "刪除申請", danger: true,
+        });
+        if (!confirmed) return;
+        await deletePendingUser(user.uid);
+        notify.success("已刪除申請");
+        await loadUsers();
+      }),
+    ]);
 }
 
 function authorizedCard(user) {
-  const card = document.createElement("article");
-  card.className = "user-card";
-  card.appendChild(identity(user));
   const isSelf = user.uid === session.user.uid;
-  const name = document.createElement("input");
-  name.value = user.displayName || "";
-  name.placeholder = "顯示名稱";
-  const role = roleSelect(user.role || "member", isSelf);
-  const form = document.createElement("div");
-  form.className = "user-form";
-  form.append(field("顯示名稱", name), field("Role", role));
-  card.appendChild(form);
-
-  const actions = document.createElement("div");
-  actions.className = "user-actions";
-  actions.appendChild(actionButton("儲存變更", "btn btn-primary", async () => {
-    await updateAuthorizedUser(user.uid, { displayName: name.value, role: role.value });
-    notify.success("已更新使用者");
-    await loadUsers();
-  }));
-  const remove = actionButton("移除授權", "btn btn-danger", async () => {
+  const role = user.role === "admin" ? "admin" : "member";
+  const remove = actionButton("移除", "btn btn-ghost btn-sm", async () => {
     const confirmed = await confirmModal({
       title: "移除使用者授權",
       message: `確定移除 ${user.email || "此帳號"} 的系統使用權嗎？`,
@@ -154,13 +144,92 @@ function authorizedCard(user) {
   });
   remove.disabled = isSelf;
   if (isSelf) remove.title = "不能移除目前登入的管理員";
-  actions.appendChild(remove);
-  card.appendChild(actions);
+  return userRow(user,
+    [
+      badge(role, role === "admin" ? "info" : "muted"),
+      badge(user.enabled === false ? "停用" : "啟用", user.enabled === false ? "danger" : "success"),
+    ],
+    [
+      actionButton("編輯", "btn btn-ghost btn-sm", () => openEditModal(user, isSelf)),
+      remove,
+    ],
+    isSelf ? badge("目前帳號", "info") : null);
+}
+
+/* ---------- edit / approve modals ---------- */
+
+function openApproveModal(user) {
+  const name = document.createElement("input");
+  name.value = user.displayName || "";
+  name.placeholder = "顯示名稱";
+  const role = roleSelect("member");
+  const body = document.createElement("div");
+  body.append(field("顯示名稱", name), field("Role", role));
+
+  const footer = document.createElement("div");
+  footer.style.cssText = "display:flex; gap:10px";
+  const cancel = document.createElement("button");
+  cancel.className = "btn btn-ghost"; cancel.textContent = "取消"; cancel.type = "button";
+  const save = document.createElement("button");
+  save.className = "btn btn-primary"; save.textContent = "同意授權"; save.type = "button";
+  footer.append(cancel, save);
+  openModal({ title: `授權 ${user.email || "使用者"}`, body, footer, maxWidth: "420px" });
+  cancel.addEventListener("click", () => closeModal());
+  save.addEventListener("click", async () => {
+    save.disabled = cancel.disabled = true;
+    try {
+      await approvePendingUser(user, { displayName: name.value, role: role.value });
+      notify.success("已授權使用者");
+      closeModal();
+      await loadUsers();
+    } catch (error) {
+      console.error(error);
+      notify.danger(firestoreErrorMessage(error));
+      save.disabled = cancel.disabled = false;
+    }
+  });
+}
+
+function openEditModal(user, isSelf) {
+  const name = document.createElement("input");
+  name.value = user.displayName || "";
+  name.placeholder = "顯示名稱";
+  const role = roleSelect(user.role || "member", isSelf);
+  const body = document.createElement("div");
+  body.append(field("顯示名稱", name), field("Role", role));
+  if (isSelf) {
+    const note = document.createElement("p");
+    note.className = "user-meta";
+    note.textContent = "不能變更自己的角色。";
+    body.appendChild(note);
+  }
   const uid = document.createElement("div");
   uid.className = "user-meta";
-  uid.textContent = `UID：${user.uid}${isSelf ? "（目前帳號）" : ""}`;
-  card.appendChild(uid);
-  return card;
+  uid.textContent = `UID：${user.uid}`;
+  body.appendChild(uid);
+
+  const footer = document.createElement("div");
+  footer.style.cssText = "display:flex; gap:10px";
+  const cancel = document.createElement("button");
+  cancel.className = "btn btn-ghost"; cancel.textContent = "取消"; cancel.type = "button";
+  const save = document.createElement("button");
+  save.className = "btn btn-primary"; save.textContent = "儲存變更"; save.type = "button";
+  footer.append(cancel, save);
+  openModal({ title: `編輯 ${user.displayName || user.email || "使用者"}`, body, footer, maxWidth: "420px" });
+  cancel.addEventListener("click", () => closeModal());
+  save.addEventListener("click", async () => {
+    save.disabled = cancel.disabled = true;
+    try {
+      await updateAuthorizedUser(user.uid, { displayName: name.value, role: role.value });
+      notify.success("已更新使用者");
+      closeModal();
+      await loadUsers();
+    } catch (error) {
+      console.error(error);
+      notify.danger(firestoreErrorMessage(error));
+      save.disabled = cancel.disabled = false;
+    }
+  });
 }
 
 function renderList(hostId, users, renderer, countId, emptyMessage) {

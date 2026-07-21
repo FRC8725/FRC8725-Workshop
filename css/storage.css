@@ -60,13 +60,6 @@
 .section-items.view-list { gap: 6px; }
 .section-empty { color: var(--text-dim); font-size: 12.5px; font-style: italic; padding: 6px 0; }
 
-/* item card / list styling is shared in components.css.
-   In a section cell, cards stay compact (no thumbnail column). */
-.section-items .item-card { padding: 10px 12px; }
-
-/* ---------- View switcher position ---------- */
-.storage-toolbar .view-mode-switcher { margin-left: auto; }
-
 /* ---------- Error page ---------- */
 .error-page {
   max-width: 460px;

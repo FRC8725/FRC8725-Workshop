@@ -36,6 +36,13 @@ export async function boxTransferItem(cfg) {
   return result;
 }
 
+/** 一次取用多個品項到同一盒子（單一原子操作，全部成功或全部失敗）。 */
+export async function boxTakeItems(cfg) {
+  const result = await (await backend()).fbBoxTakeItems(cfg);
+  if (!isDemoMode()) invalidateItemCache();
+  return result;
+}
+
 export async function closeUsageBox(boxId) {
   return (await backend()).fbCloseUsageBox(boxId);
 }

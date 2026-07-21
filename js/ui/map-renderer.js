@@ -74,17 +74,6 @@ export function renderHotspots({ host, areas, stats, onOpen }) {
   }
 }
 
-/** Flash a hotspot (used by search "open location"). */
-export function flashHotspot(host, areaId) {
-  const btn = host.querySelector(`[data-area-id="${CSS.escape(areaId)}"]`);
-  if (!btn) return;
-  btn.classList.remove("flash");
-  void btn.offsetWidth;
-  btn.classList.add("flash");
-  btn.scrollIntoView({ behavior: "smooth", block: "center", inline: "center" });
-  setTimeout(() => btn.classList.remove("flash"), 3200);
-}
-
 /**
  * Highlight a hotspot from a search-result hover/focus, showing its tooltip.
  * Uses a dedicated class so it never fights the hotspot's own :hover state.

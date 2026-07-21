@@ -286,6 +286,61 @@ export async function fbBoxTransferItem({ boxId, itemId, quantity, action }) {
   return { box: { ...box }, item: { ...items[itemIndex] } };
 }
 
+export async function fbBoxTakeItems({ boxId, entries }) {
+  const wanted = new Map();
+  for (const entry of entries || []) {
+    const qty = Number(entry.quantity);
+    if (!entry.itemId) continue;
+    if (!Number.isInteger(qty) || qty <= 0) throw Object.assign(new Error("數量必須是正整數"), { code: "invalid-quantity" });
+    wanted.set(entry.itemId, (wanted.get(entry.itemId) || 0) + qty);
+  }
+  if (!wanted.size) throw Object.assign(new Error("請至少選擇一個品項"), { code: "invalid-quantity" });
+
+  const boxes = loadBoxes();
+  const items = loadItems();
+  const boxIndex = boxes.findIndex((b) => b.id === boxId);
+  if (boxIndex < 0) throw Object.assign(new Error("找不到盒子"), { code: "not-found" });
+  const box = { ...boxes[boxIndex], items: (boxes[boxIndex].items || []).map((entry) => ({ ...entry })) };
+  if (box.status === "closed") throw Object.assign(new Error("此盒子已結束，無法再操作"), { code: "box-closed" });
+
+  // 先全部驗證與試算，再一次寫入（demo 版原子性）。
+  const staged = [];
+  for (const [itemId, qty] of wanted) {
+    const itemIndex = items.findIndex((i) => i.id === itemId);
+    if (itemIndex < 0) throw Object.assign(new Error("找不到物品"), { code: "not-found" });
+    const item = items[itemIndex];
+    if (item.category === "tool" && !isToolTakable(item)) {
+      throw Object.assign(new Error(`「${item.name}」為特殊狀態，無法取用`), { code: "special-status" });
+    }
+    let result;
+    try { result = applyQuantityChange(item, -qty); }
+    catch (err) {
+      if (err.code === "insufficient") {
+        const avail = Math.max(0, Number(item.quantity) || 0);
+        throw Object.assign(new Error(`「${item.name}」可用數量不足（需 ${qty}，剩 ${avail}）`), { code: "insufficient" });
+      }
+      throw err;
+    }
+    staged.push({ itemIndex, item, qty, result });
+  }
+
+  for (const { itemIndex, item, qty, result } of staged) {
+    const entryIndex = box.items.findIndex((entry) => entry.itemId === item.id);
+    const held = entryIndex >= 0 ? Math.max(0, Number(box.items[entryIndex].quantity) || 0) : 0;
+    if (entryIndex >= 0) box.items[entryIndex].quantity = held + qty;
+    else box.items.push({ itemId: item.id, name: item.name || "", category: item.category || null, unit: item.unit ?? null, quantity: held + qty });
+    items[itemIndex] = { ...item, quantity: result.quantity, status: result.status, updatedAt: nowIso() };
+  }
+  box.updatedAt = nowIso();
+  boxes[boxIndex] = box;
+  saveItems(items);
+  saveBoxes(boxes);
+  for (const { itemIndex, qty } of staged) {
+    appendLog({ action: "take", source: "box", userName: box.userName, userUid: box.userUid ?? null, item: items[itemIndex], quantity: qty, box });
+  }
+  return { box: { ...box } };
+}
+
 export async function fbCloseUsageBox(boxId) {
   const boxes = loadBoxes();
   const index = boxes.findIndex((b) => b.id === boxId);

@@ -4,12 +4,11 @@ import { $, el, escapeHtml, icon, formatLocation, isLowStock, isOutOfStock, inve
 import { initLabels, storageTypeLabel } from "../ui/labels.js";
 import {
   getAreaById, getStructureById, getItemsByStorageId,
-  getWorkshopMap, getStructures, deleteItem, adjustItemQuantity,
+  getAllAreas, getStructures, deleteItem, adjustItemQuantity,
 } from "../services/data-service.js";
 import { buildLocationIndex, filterItems } from "../utils/search.js";
 import { sortByName } from "../utils/item-logic.js";
 import { renderStructure } from "../ui/storage-renderer.js";
-import { getViewMode, setViewMode, renderViewSwitcher } from "../ui/item-view.js";
 import { openItemForm } from "../ui/item-form.js";
 import { confirmModal } from "../ui/modal.js";
 import { notify } from "../ui/notifications.js";
@@ -21,7 +20,6 @@ let state = {
   items: [],
   index: null,
   query: "",
-  viewMode: getViewMode("storage"),
   highlight: { section: null, item: null },
 };
 
@@ -31,7 +29,6 @@ export async function mountPage({ params, routeTo }) {
   navigate = routeTo;
   state = {
     area: null, structure: null, items: [], index: null, query: "",
-    viewMode: getViewMode("storage"),
     highlight: { section: null, item: null },
   };
   const storageId = params.get("id");
@@ -49,7 +46,7 @@ export async function mountPage({ params, routeTo }) {
   try {
     const [area, allAreas, structures] = await Promise.all([
       getAreaById(storageId),
-      getWorkshopMap().then((m) => m.areas || []),
+      getAllAreas(),
       getStructures(),
       initLabels(),
     ]);
@@ -111,16 +108,6 @@ function wireToolbar() {
   const input = document.getElementById("storage-search");
   if (input) input.addEventListener("input", () => { state.query = input.value; renderGrid(); });
 
-  // View mode switcher (card / list)
-  const toolbar = document.querySelector(".storage-toolbar");
-  if (toolbar && !toolbar.querySelector(".view-mode-switcher")) {
-    const switcher = renderViewSwitcher(state.viewMode, (mode) => {
-      state.viewMode = mode;
-      setViewMode("storage", mode);
-      renderGrid();               // re-render with current data — no Firebase reload
-    });
-    toolbar.appendChild(switcher);
-  }
 }
 
 // One delegated handler for edit / delete across all sections (no per-render listeners).
@@ -210,7 +197,6 @@ function renderGrid() {
     host,
     structure: state.structure,
     items: filtered,
-    viewMode: state.viewMode,
     ctx: { page: "storage", index: state.index },
     onAdd: (sectionId) => openItemForm({
       defaults: { storageId: state.area.id, sectionId },

@@ -17,6 +17,9 @@ async function initAuth() {
   const app = await getFirebaseApp();
   authSdk = await import(`https://www.gstatic.com/firebasejs/${FIREBASE_SDK_VERSION}/firebase-auth.js`);
   auth = authSdk.getAuth(app);
+  // Keep the session across reloads so a page refresh does not bounce back to login.
+  try { await authSdk.setPersistence(auth, authSdk.browserLocalPersistence); }
+  catch (error) { console.warn("無法設定登入持久化，改用預設。", error); }
   provider = new authSdk.GoogleAuthProvider();
   provider.setCustomParameters({ prompt: "select_account" });
   return auth;
@@ -26,11 +29,14 @@ async function handleRedirectResult() {
   const instance = await initAuth();
   if (redirectChecked) return null;
   redirectChecked = true;
-  return authSdk.getRedirectResult(instance);
-}
-
-function isMobileBrowser() {
-  return matchMedia("(max-width: 768px)").matches || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  try {
+    return await authSdk.getRedirectResult(instance);
+  } catch (error) {
+    // A dropped redirect handshake (storage-partitioned mobile browsers) must not
+    // block auth init — onAuthStateChanged still resolves the current user.
+    console.warn("處理重新導向登入結果時發生問題（可忽略，將改用彈出視窗）。", error);
+    return null;
+  }
 }
 
 export function authErrorMessage(error) {
@@ -61,11 +67,17 @@ export function firestoreErrorMessage(error, authorization = false) {
 
 export async function loginWithGoogle() {
   const instance = await initAuth();
-  if (isMobileBrowser()) return authSdk.signInWithRedirect(instance, provider);
+  // Popup first on every device. signInWithRedirect breaks on mobile browsers that
+  // partition storage (iOS Safari / in-app webviews) with
+  // "Unable to process request due to missing initial state", because the redirect
+  // handshake state kept in sessionStorage is dropped. Popup avoids that entirely.
   try {
     return await authSdk.signInWithPopup(instance, provider);
   } catch (error) {
-    if (error?.code === "auth/popup-blocked") {
+    const fallbackToRedirect = error?.code === "auth/popup-blocked"
+      || error?.code === "auth/operation-not-supported-in-environment"
+      || error?.code === "auth/cancelled-popup-request";
+    if (fallbackToRedirect) {
       await authSdk.signInWithRedirect(instance, provider);
       return null;
     }

@@ -1,0 +1,18 @@
+{
+  "plans": [
+    {
+      "id": "main",
+      "name": "培訓室平面圖",
+      "image": "images/floor-plans/workshop-floor-plan.png",
+      "aspectRatio": "708 / 1176",
+      "map": "config/maps/workshop-map.json"
+    },
+    {
+      "id": "storage",
+      "name": "材料室平面圖",
+      "image": "images/floor-plans/storage-floor-plan.png",
+      "aspectRatio": "410 / 447",
+      "map": "config/maps/storage-map.json"
+    }
+  ]
+}

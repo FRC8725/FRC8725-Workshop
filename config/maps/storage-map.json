@@ -1,0 +1,72 @@
+{
+  "mapImage": "images/floor-plans/storage-floor-plan.png",
+  "aspectRatio": "410 / 447",
+  "areas": [
+    {
+      "id": "cabinet-31",
+      "name": "櫃 31",
+      "type": "cabinet",
+      "x": 86.59,
+      "y": 3.58,
+      "width": 10.0,
+      "height": 18.57,
+      "rotation": 0,
+      "structureId": "shelf-2"
+    },
+    {
+      "id": "cabinet-32-33",
+      "name": "櫃 32-33",
+      "type": "cabinet",
+      "x": 86.59,
+      "y": 22.37,
+      "width": 10.0,
+      "height": 37.14,
+      "rotation": 0,
+      "structureId": "mat-shelf-32-33"
+    },
+    {
+      "id": "cabinet-34",
+      "name": "櫃 34",
+      "type": "cabinet",
+      "x": 3.66,
+      "y": 78.3,
+      "width": 92.93,
+      "height": 18.79,
+      "rotation": 0,
+      "structureId": "shelf-2"
+    },
+    {
+      "id": "cabinet-35",
+      "name": "櫃 35",
+      "type": "cabinet",
+      "x": 3.66,
+      "y": 59.73,
+      "width": 9.76,
+      "height": 18.57,
+      "rotation": 0,
+      "structureId": "shelf-2"
+    },
+    {
+      "id": "cabinet-36",
+      "name": "櫃 36",
+      "type": "cabinet",
+      "x": 3.66,
+      "y": 3.58,
+      "width": 9.76,
+      "height": 55.93,
+      "rotation": 0,
+      "structureId": "shelf-2"
+    },
+    {
+      "id": "plasma-table",
+      "name": "等離子工作區",
+      "type": "machine",
+      "x": 23.66,
+      "y": 3.58,
+      "width": 52.68,
+      "height": 49.44,
+      "rotation": 0,
+      "structureId": "single"
+    }
+  ]
+}

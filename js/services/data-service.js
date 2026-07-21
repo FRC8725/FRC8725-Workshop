@@ -9,15 +9,17 @@ import { getCurrentUser } from "./auth-service.js";
 import { isDemoMode } from "../core/demo-mode.js";
 import { debugLog } from "../core/debug-mode.js";
 
-const MAP_PATH = "config/workshop-map.json";
+const MAP_PATH = "config/maps/workshop-map.json";
 const STRUCT_PATH = "config/storage-structures.json";
 const SUMMARY_PATH = "config/summary-stats.json";
+const PLANS_PATH = "config/floor-plans.json";
 let fb = null;
 let memCache = null;
 let memCacheVersion = "";
 let memCacheValidatedAt = 0;
 const CACHE_REVALIDATE_MS = 5 * 60 * 1000;
-let configCache = { map: null, structures: null, summaryStats: null };
+let configCache = { map: null, structures: null, summaryStats: null, plans: null, allAreas: null };
+const mapFileCache = new Map(); // path -> parsed map JSON
 
 async function backend() {
   if (isDemoMode()) {
@@ -130,13 +132,60 @@ export async function getSummaryStatsConfig() {
   return configCache.summaryStats;
 }
 
+/** 多平面圖清單。若未設定 floor-plans.json，退回單一預設平面圖。 */
+export async function getFloorPlans() {
+  if (!configCache.plans) {
+    let plans = [];
+    try {
+      const data = await loadJSON(PLANS_PATH);
+      plans = Array.isArray(data.plans) ? data.plans.filter((plan) => plan && plan.id) : [];
+    } catch { plans = []; }
+    if (!plans.length) {
+      const map = await getWorkshopMap();
+      plans = [{ id: "main", name: "培訓室平面圖", image: map.mapImage, aspectRatio: map.aspectRatio, map: MAP_PATH }];
+    }
+    configCache.plans = plans;
+  }
+  return configCache.plans;
+}
+
+async function loadMapFile(path) {
+  const key = path || MAP_PATH;
+  if (key === MAP_PATH) return getWorkshopMap();
+  if (!mapFileCache.has(key)) mapFileCache.set(key, await loadJSON(key));
+  return mapFileCache.get(key);
+}
+
+/** 取得單一平面圖的影像與其區域。 */
+export async function getFloorPlanData(plan) {
+  const map = await loadMapFile(plan?.map);
+  return {
+    image: plan?.image || map.mapImage,
+    aspectRatio: plan?.aspectRatio || map.aspectRatio,
+    areas: map.areas || [],
+  };
+}
+
+/** 所有平面圖區域的聯集（依 id 去重），供位置索引與 getAreaById 使用。 */
+export async function getAllAreas() {
+  if (!configCache.allAreas) {
+    const plans = await getFloorPlans();
+    const byId = new Map();
+    for (const plan of plans) {
+      const map = await loadMapFile(plan.map);
+      for (const area of map.areas || []) if (!byId.has(area.id)) byId.set(area.id, area);
+    }
+    configCache.allAreas = [...byId.values()];
+  }
+  return configCache.allAreas;
+}
+
 export async function getStructureById(structureId) {
   return (await getStructures()).find((structure) => structure.id === structureId) || null;
 }
 
 export async function getAreaById(areaId) {
-  const map = await getWorkshopMap();
-  return (map.areas || []).find((area) => area.id === areaId) || null;
+  return (await getAllAreas()).find((area) => area.id === areaId) || null;
 }
 
 export async function getItems() {

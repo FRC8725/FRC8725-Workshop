@@ -33,6 +33,12 @@
   margin-bottom: 16px;
 }
 .ops-toolbar .search-box { flex: 1; min-width: 220px; }
+.ops-toolbar #add-box-btn,
+.ops-toolbar #add-prep-btn {
+  width: 132px;
+  min-width: 132px;
+  justify-content: center;
+}
 
 /* ---------- 卡片列表 ---------- */
 .ops-list {
@@ -89,6 +95,118 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  border-radius: 4px;
+}
+
+/* ---------- 使用盒子：列表與內容畫面 ---------- */
+#box-list.ops-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+#prep-list.ops-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.usage-box-card {
+  display: grid;
+  grid-template-columns: minmax(190px, 240px) minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 16px;
+  padding: 14px 16px;
+  min-width: 0;
+  width: 100%;
+  cursor: pointer;
+  transition: border-color .15s ease, background-color .15s ease, box-shadow .15s ease;
+}
+.usage-box-card:hover { border-color: var(--cffy-theme-info-a0); background: rgba(135, 209, 255, .035); }
+.usage-box-card:focus-visible { outline: 2px solid var(--cffy-theme-info-a0); outline-offset: 2px; }
+.usage-box-card .ops-card-head { min-width: 0; }
+.usage-box-entries.ops-entry-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.usage-box-entries .ops-entry-location {
+  max-width: none;
+  color: var(--cffy-theme-info-a20);
+  background: rgba(135, 209, 255, 0.10);
+  border: 1px solid rgba(135, 209, 255, 0.22);
+  border-radius: 4px;
+  padding: 3px 9px;
+  white-space: nowrap;
+  line-height: 1.35;
+}
+.usage-box-entries .ops-entry {
+  flex-wrap: nowrap;
+}
+.usage-box-entries .ops-entry > .btn[data-action="return-entry"] {
+  margin-left: auto;
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+.usage-box-more { color: var(--cffy-theme-info-a10); font-size: 12px; font-weight: 700; padding: 3px 4px; }
+.usage-box-card .ops-card-actions {
+  align-self: start;
+  margin-top: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  width: 200px;
+  max-width: none;
+  gap: 8px;
+}
+.usage-box-card .ops-card-actions .btn {
+  width: 100%;
+  min-width: 0;
+  justify-content: center;
+  white-space: nowrap;
+}
+.usage-box-card .ops-card-actions [data-action="take"] {
+  grid-column: 1 / -1;
+}
+.usage-box-view { display: flex; flex-direction: column; gap: 16px; }
+.usage-box-view-head { padding-bottom: 12px; border-bottom: 1px solid var(--border-soft); }
+.usage-box-view-entries { max-height: min(58vh, 560px); overflow-y: auto; padding-right: 4px; }
+.usage-box-view-entries .ops-entry { padding: 10px 12px; }
+.usage-box-view-entries .ops-entry > .btn {
+  margin-left: auto;
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+.usage-box-view-entries .ops-entry-location {
+  max-width: none;
+  color: var(--cffy-theme-info-a20);
+  background: rgba(135, 209, 255, 0.10);
+  border: 1px solid rgba(135, 209, 255, 0.22);
+  border-radius: 4px;
+  padding: 3px 9px;
+}
+.usage-box-view-actions { display: flex; justify-content: flex-end; gap: 10px; }
+
+.prep-order-card {
+  display: grid;
+  grid-template-columns: minmax(210px, 260px) minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 16px;
+  width: 100%;
+}
+.prep-order-card .ops-entry-list { min-width: 0; }
+.prep-order-card .ops-card-actions {
+  align-self: start;
+  margin-top: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  width: 200px;
+  max-width: none;
+  gap: 8px;
+}
+.prep-order-card .ops-card-actions .btn {
+  width: 100%;
+  min-width: 0;
+  justify-content: center;
+  white-space: nowrap;
 }
 
 /* ---------- 取用／備料 modal ---------- */
@@ -124,6 +242,16 @@
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .take-candidate-avail { font-size: 12px; color: var(--text-muted); flex-shrink: 0; }
+.take-candidate-incart {
+  font-size: 11px; font-weight: 700; flex-shrink: 0;
+  color: var(--cffy-theme-success-a0);
+  background: rgba(125, 255, 149, 0.14); border-radius: 999px; padding: 2px 8px;
+}
+.take-candidates { max-height: 240px; overflow-y: auto; scrollbar-gutter: stable; }
+.take-cart-qty {
+  width: 68px; flex-shrink: 0; text-align: center;
+  padding: 5px 6px; font-size: 13px;
+}
 
 .prep-order-modal {
   height: min(760px, calc(100vh - 40px));
@@ -201,14 +329,70 @@
 @media (max-width: 1200px) {
   .log-filter-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
+@media (min-width: 769px) and (max-width: 1000px) {
+  .usage-box-card {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 10px 14px;
+  }
+  .usage-box-card .ops-card-head { grid-column: 1; grid-row: 1; }
+  .usage-box-card .ops-card-actions {
+    grid-column: 2;
+    grid-row: 1;
+    align-self: center;
+  }
+  .usage-box-entries {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+  .prep-order-card {
+    grid-template-columns: minmax(180px, 220px) minmax(0, 1fr);
+  }
+  .prep-order-card .ops-card-actions {
+    grid-column: 1 / -1;
+    justify-self: end;
+  }
+}
 @media (max-width: 768px) {
   .ops-list { grid-template-columns: 1fr; }
   .ops-tabs { width: 100%; }
   .ops-tab { flex: 1; text-align: center; }
+  .usage-box-card { grid-template-columns: minmax(0, 1fr) auto; gap: 10px; }
+  .usage-box-card .ops-card-head { grid-column: 1 / -1; }
+  .usage-box-entries { grid-column: 1 / -1; }
+  .usage-box-card .ops-card-actions { grid-column: 1 / -1; max-width: none; }
+  .usage-box-card .ops-card-actions { width: min(100%, 320px); }
+  .prep-order-card { grid-template-columns: 1fr; }
+  .prep-order-card .ops-card-actions { width: min(100%, 320px); }
 }
 @media (max-width: 480px) {
   .log-filter-grid { grid-template-columns: 1fr; }
   .log-time { min-width: 0; width: 100%; }
   .ops-card-actions .btn { flex: 1; justify-content: center; }
   .prep-order-modal { height: 100%; }
+  .ops-toolbar .search-box { flex-basis: 100%; }
+  .ops-toolbar #add-box-btn,
+  .ops-toolbar #add-prep-btn { margin-left: auto; }
+  .usage-box-card { padding: 12px; }
+  .usage-box-entries .ops-entry {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto auto;
+    gap: 7px;
+  }
+  .usage-box-entries .ops-entry-name {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .usage-box-entries .ops-entry-location {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    width: fit-content;
+    max-width: 100%;
+    white-space: normal;
+  }
+  .usage-box-entries .ops-entry > .btn[data-action="return-entry"] {
+    grid-column: 4;
+    grid-row: 1;
+    margin-left: 0;
+  }
 }
