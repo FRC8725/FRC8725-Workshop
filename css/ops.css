@@ -163,9 +163,6 @@
   justify-content: center;
   white-space: nowrap;
 }
-.usage-box-card .ops-card-actions [data-action="take"] {
-  grid-column: 1 / -1;
-}
 .usage-box-view { display: flex; flex-direction: column; gap: 16px; }
 .usage-box-view-head { padding-bottom: 12px; border-bottom: 1px solid var(--border-soft); }
 .usage-box-view-entries { max-height: min(58vh, 560px); overflow-y: auto; padding-right: 4px; }
@@ -218,6 +215,7 @@
   overflow-y: auto;
   overscroll-behavior: contain;
 }
+.take-candidates[hidden] { display: none; }
 .take-candidate {
   display: flex;
   align-items: center;
@@ -248,6 +246,82 @@
   background: rgba(125, 255, 149, 0.14); border-radius: 999px; padding: 2px 8px;
 }
 .take-candidates { max-height: 240px; overflow-y: auto; scrollbar-gutter: stable; }
+
+/* 固定取用視窗的外框高度，切換候選清單與相機時只捲動內容，不改變 modal 尺寸。 */
+.take-items-modal {
+  height: min(830px, calc(100vh - 40px));
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.take-items-modal .modal-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+/* ---------- Camera scan ---------- */
+.take-tools { display: flex; align-items: flex-end; gap: 10px; margin-bottom: 12px; }
+/* 方形圖示按鈕，高度與搜尋欄一致（輸入框 padding 9px + 1px 邊框 + 行高 ≈ 40px）。 */
+.take-scan-btn {
+  flex: 0 0 auto;
+  width: 40px; height: 40px; padding: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--card-bg-alt); color: var(--text);
+  border: 1px solid var(--border); border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+.take-scan-btn:hover { background: var(--border); }
+.take-scan-btn:focus-visible { outline: 2px solid var(--cffy-theme-info-a0); outline-offset: 2px; }
+.take-scan-btn.is-active { background: var(--primary); color: var(--cffy-theme-light-a0); border-color: var(--primary); }
+.take-scan-btn .scan-ico-off { display: none; }
+.take-scan-btn.is-active .scan-ico-on { display: none; }
+.take-scan-btn.is-active .scan-ico-off { display: inline-flex; }
+.take-scan-region {
+  position: relative;
+  margin-bottom: 12px;
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: #000;
+}
+.take-scan-region video {
+  display: block; width: 100%; max-height: 46vh;
+  object-fit: cover; background: #000;
+}
+.take-scan-region::after {
+  content: ""; position: absolute; inset: 18% 28%;
+  border: 2px solid rgba(255, 255, 255, 0.85); border-radius: 8px;
+  box-shadow: 0 0 0 100vmax rgba(0, 0, 0, 0.25); pointer-events: none;
+}
+.take-scan-region.flash { animation: scan-flash 0.6s ease; }
+@keyframes scan-flash {
+  0% { box-shadow: inset 0 0 0 4px var(--cffy-theme-success-a0); }
+  100% { box-shadow: inset 0 0 0 0 rgba(125,255,149,0); }
+}
+/* 掃描成功回饋：中央綠色勾勾 + 名稱，短暫淡入淡出。 */
+.take-scan-success {
+  position: absolute; inset: 0; z-index: 2;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
+  color: #fff; background: rgba(30, 120, 60, 0.42);
+  opacity: 0; pointer-events: none; transition: opacity 0.15s ease;
+}
+.take-scan-success svg { filter: drop-shadow(0 1px 3px rgba(0,0,0,0.5)); }
+.take-scan-success span { font-weight: 700; font-size: 14px; text-shadow: 0 1px 3px rgba(0,0,0,0.6); }
+.take-scan-success.show { opacity: 1; animation: scan-pop 0.9s ease; }
+@keyframes scan-pop { 0% { transform: scale(0.82); } 40% { transform: scale(1.04); } 100% { transform: scale(1); } }
+.take-scan-status {
+  position: absolute; left: 0; right: 0; bottom: 0;
+  padding: 7px 10px; font-size: 12.5px; font-weight: 600;
+  color: #fff; background: rgba(0, 0, 0, 0.6); text-align: center;
+}
+.take-scan-status.is-ok { background: rgba(30, 120, 60, 0.82); }
+.take-scan-status.is-warn { background: rgba(150, 70, 40, 0.85); }
+@media (max-width: 480px) {
+  .take-items-modal { height: 100%; }
+  .take-tools { flex-direction: column; align-items: stretch; }
+  .take-scan-btn { justify-content: center; }
+}
 .take-cart-qty {
   width: 68px; flex-shrink: 0; text-align: center;
   padding: 5px 6px; font-size: 13px;

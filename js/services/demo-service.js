@@ -345,8 +345,10 @@ export async function fbCloseUsageBox(boxId) {
   const boxes = loadBoxes();
   const index = boxes.findIndex((b) => b.id === boxId);
   if (index < 0) throw Object.assign(new Error("找不到盒子"), { code: "not-found" });
-  if ((boxes[index].items || []).length > 0) {
-    throw Object.assign(new Error("盒內仍有未歸還品項，無法標記結束"), { code: "box-not-empty" });
+  const hasUnreturnedTools = (boxes[index].items || []).some((entry) =>
+    entry.category === "tool" && (Number(entry.quantity) || 0) > 0);
+  if (hasUnreturnedTools) {
+    throw Object.assign(new Error("盒內仍有未歸還工具，無法標記結束"), { code: "box-not-empty" });
   }
   boxes[index] = { ...boxes[index], status: "closed", updatedAt: nowIso() };
   saveBoxes(boxes);
@@ -356,8 +358,10 @@ export async function fbCloseUsageBox(boxId) {
 export async function fbDeleteUsageBox(boxId) {
   const boxes = loadBoxes();
   const box = boxes.find((b) => b.id === boxId);
-  if (box && (box.items || []).length > 0) {
-    throw Object.assign(new Error("盒內仍有品項，只能刪除空盒子"), { code: "box-not-empty" });
+  const hasUnreturnedTools = (box?.items || []).some((entry) =>
+    entry.category === "tool" && (Number(entry.quantity) || 0) > 0);
+  if (hasUnreturnedTools) {
+    throw Object.assign(new Error("盒內仍有未歸還工具，無法刪除盒子"), { code: "box-not-empty" });
   }
   saveBoxes(boxes.filter((b) => b.id !== boxId));
   return true;

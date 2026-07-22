@@ -8,6 +8,7 @@ import { loadJSON } from "../utils/utils.js";
 import { getCurrentUser } from "./auth-service.js";
 import { isDemoMode } from "../core/demo-mode.js";
 import { debugLog } from "../core/debug-mode.js";
+import { applyQuantityChange } from "../utils/item-logic.js";
 
 const MAP_PATH = "config/maps/workshop-map.json";
 const STRUCT_PATH = "config/storage-structures.json";
@@ -46,15 +47,25 @@ function logCacheRead(target, detail = "") {
   debugLog(`[快取讀取] ${target}${detail ? `｜${detail}` : ""}`);
 }
 
+function nextLocalVersionId() {
+  return `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
+function nextLocalItemId() {
+  if (globalThis.crypto?.randomUUID) return `item-${globalThis.crypto.randomUUID()}`;
+  return `item-${Date.now()}-${Math.random().toString(36).slice(2, 12)}`;
+}
+
 function itemCacheKey() {
   const uid = getCurrentUser()?.uid;
-  return uid ? `workshop.firestore.items.v1.${uid}` : "";
+  // v2 invalidates snapshots created before mutation-aware cache handling.
+  return uid ? `workshop.firestore.items.v2.${uid}` : "";
 }
 
 function itemSegmentKey(storageId) {
   const uid = getCurrentUser()?.uid;
   return uid && storageId
-    ? `workshop.firestore.items-segment.v1.${uid}.${encodeURIComponent(storageId)}`
+    ? `workshop.firestore.items-segment.v2.${uid}.${encodeURIComponent(storageId)}`
     : "";
 }
 
@@ -73,6 +84,11 @@ function writeSegmentCache(storageId, version, items) {
   try {
     localStorage.setItem(key, JSON.stringify({ version, items, validatedAt: new Date().toISOString() }));
   } catch (error) { console.warn("無法儲存儲位分段快取。", error); }
+}
+
+function removeFullItemCache() {
+  const key = itemCacheKey();
+  if (key) try { localStorage.removeItem(key); } catch { /* ignore */ }
 }
 
 function readItemCache() {
@@ -99,16 +115,42 @@ export function invalidateItemCache() {
   memCache = null;
   memCacheVersion = "";
   memCacheValidatedAt = 0;
-  const key = itemCacheKey();
-  if (key) try { localStorage.removeItem(key); } catch { /* ignore */ }
+  removeFullItemCache();
 }
 
-async function persistCurrentItems(svc) {
-  if (isDemoMode() || !memCache) return;
-  const version = await svc.fbGetItemsVersion();
+function applyOptimisticItemChange(version, storageIds, transform) {
+  const fullKey = itemCacheKey();
+  const segmentKeys = [...new Set(storageIds.filter(Boolean))].map(itemSegmentKey).filter(Boolean);
+  const previous = new Map();
+  for (const key of [fullKey, ...segmentKeys].filter(Boolean)) {
+    try { previous.set(key, localStorage.getItem(key)); } catch { previous.set(key, null); }
+  }
+  const previousMemCache = memCache ? [...memCache] : null;
+  const previousMemVersion = memCacheVersion;
+  const previousValidatedAt = memCacheValidatedAt;
+
+  if (memCache) memCache = transform(memCache, null);
+  const full = readItemCache();
+  if (full) writeItemCache(version, transform(full.items, null));
+  else if (memCache) writeItemCache(version, memCache);
+  for (const storageId of new Set(storageIds.filter(Boolean))) {
+    const segment = readSegmentCache(storageId);
+    if (segment) {
+      writeSegmentCache(storageId, version,
+        transform(segment.items, storageId).filter((item) => item.storageId === storageId));
+    }
+  }
   memCacheVersion = version;
   memCacheValidatedAt = Date.now();
-  writeItemCache(version, memCache);
+
+  return () => {
+    memCache = previousMemCache;
+    memCacheVersion = previousMemVersion;
+    memCacheValidatedAt = previousValidatedAt;
+    for (const [key, raw] of previous) {
+      try { raw == null ? localStorage.removeItem(key) : localStorage.setItem(key, raw); } catch { /* ignore */ }
+    }
+  };
 }
 
 export async function getWorkshopMap() {
@@ -286,40 +328,116 @@ export async function getItemById(itemId) {
 
 export async function createItem(itemData) {
   const svc = await backend();
-  const created = await svc.fbCreateItem(itemData);
+  if (isDemoMode()) {
+    const created = await svc.fbCreateItem(itemData);
+    if (memCache) memCache.push(created);
+    return created;
+  }
+
+  const version = nextLocalVersionId();
+  const created = { ...itemData, id: nextLocalItemId() };
+  const fullKey = itemCacheKey();
+  const segmentKey = itemSegmentKey(created.storageId);
+  const previousFullRaw = fullKey ? localStorage.getItem(fullKey) : null;
+  const previousSegmentRaw = segmentKey ? localStorage.getItem(segmentKey) : null;
+  const previousMemCache = memCache ? [...memCache] : null;
+  const previousMemVersion = memCacheVersion;
+  const previousValidatedAt = memCacheValidatedAt;
+
+  // Local-first: update every snapshot that is already complete. Do not create
+  // a segment from only the new item when that cabinet has never been loaded.
+  const full = readItemCache();
+  const segment = readSegmentCache(created.storageId);
   if (memCache) memCache.push(created);
-  await persistCurrentItems(svc);
-  return created;
-}
-
-export async function updateItem(itemId, updates) {
-  const svc = await backend();
-  const result = await svc.fbUpdateItem(itemId, updates);
-  if (memCache) {
-    const index = memCache.findIndex((item) => item.id === itemId);
-    if (index >= 0) memCache[index] = { ...memCache[index], ...updates };
+  if (full && !full.items.some((item) => item.id === created.id)) {
+    writeItemCache(version, [...full.items, created]);
+  } else if (memCache) {
+    writeItemCache(version, memCache);
   }
-  await persistCurrentItems(svc);
-  return result;
-}
-
-export async function adjustItemQuantity(itemId, delta) {
-  const svc = await backend();
-  const result = await svc.fbAdjustItemQuantity(itemId, delta);
-  if (memCache) {
-    const index = memCache.findIndex((item) => item.id === itemId);
-    if (index >= 0) memCache[index] = { ...memCache[index], quantity: result.quantity };
+  if (segment && !segment.items.some((item) => item.id === created.id)) {
+    writeSegmentCache(created.storageId, version, [...segment.items, created]);
   }
-  await persistCurrentItems(svc);
-  return result;
+  memCacheVersion = version;
+  memCacheValidatedAt = Date.now();
+
+  try {
+    // The same id/version is committed atomically with the Firestore document;
+    // no fbGetItemsVersion or full-items read is needed after this succeeds.
+    await svc.fbCreateItem(itemData, { itemId: created.id, version });
+    return created;
+  } catch (error) {
+    memCache = previousMemCache;
+    memCacheVersion = previousMemVersion;
+    memCacheValidatedAt = previousValidatedAt;
+    try {
+      if (fullKey) previousFullRaw == null
+        ? localStorage.removeItem(fullKey)
+        : localStorage.setItem(fullKey, previousFullRaw);
+      if (segmentKey) previousSegmentRaw == null
+        ? localStorage.removeItem(segmentKey)
+        : localStorage.setItem(segmentKey, previousSegmentRaw);
+    } catch { /* ignore rollback storage errors */ }
+    throw error;
+  }
 }
 
-export async function deleteItem(itemId) {
+export async function updateItem(itemId, updates, originalItem = null) {
   const svc = await backend();
-  await svc.fbDeleteItem(itemId);
-  if (memCache) memCache = memCache.filter((item) => item.id !== itemId);
-  await persistCurrentItems(svc);
-  return true;
+  if (isDemoMode()) return svc.fbUpdateItem(itemId, updates);
+  const version = nextLocalVersionId();
+  const updated = { ...(originalItem || {}), ...updates, id: itemId };
+  const rollback = applyOptimisticItemChange(
+    version,
+    [originalItem?.storageId, updates.storageId],
+    (items, segmentStorageId) => {
+      const found = items.some((item) => item.id === itemId);
+      const changed = items.map((item) => item.id === itemId ? { ...item, ...updates, id: itemId } : item);
+      return !found && segmentStorageId === updates.storageId ? [...changed, updated] : changed;
+    },
+  );
+  try {
+    await svc.fbUpdateItem(itemId, updates, { version });
+    return updated;
+  } catch (error) { rollback(); throw error; }
+}
+
+export async function adjustItemQuantity(itemId, delta, originalItem = null) {
+  const svc = await backend();
+  if (isDemoMode() || !originalItem) {
+    const result = await svc.fbAdjustItemQuantity(itemId, delta);
+    if (!isDemoMode()) invalidateItemCache();
+    return result;
+  }
+  const version = nextLocalVersionId();
+  let change;
+  try {
+    change = applyQuantityChange(originalItem, delta);
+  } catch (error) {
+    if (error.code === "insufficient") {
+      throw Object.assign(new Error("數量已經是 0"), { code: "quantity-empty" });
+    }
+    if (error.code === "over-total") {
+      throw Object.assign(new Error("工具已全部歸還"), { code: "quantity-full" });
+    }
+    throw error;
+  }
+  const rollback = applyOptimisticItemChange(version, [originalItem.storageId], (items) =>
+    items.map((item) => item.id === itemId ? { ...item, ...change } : item));
+  try {
+    return await svc.fbAdjustItemQuantity(itemId, delta, { version });
+  } catch (error) { rollback(); throw error; }
+}
+
+export async function deleteItem(itemId, originalItem = null) {
+  const svc = await backend();
+  if (isDemoMode()) return svc.fbDeleteItem(itemId);
+  const version = nextLocalVersionId();
+  const rollback = applyOptimisticItemChange(version, [originalItem?.storageId],
+    (items) => items.filter((item) => item.id !== itemId));
+  try {
+    await svc.fbDeleteItem(itemId, { version });
+    return true;
+  } catch (error) { rollback(); throw error; }
 }
 
 export async function searchItems(query, filterFn) {

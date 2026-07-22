@@ -13,6 +13,8 @@ import { openItemForm } from "../ui/item-form.js";
 import { confirmModal } from "../ui/modal.js";
 import { notify } from "../ui/notifications.js";
 import { firestoreErrorMessage } from "../services/auth-service.js";
+import { isDebugMode } from "../core/debug-mode.js";
+import { encodeDataMatrixSvg } from "../ui/datamatrix.js";
 
 let state = {
   area: null,
@@ -92,6 +94,7 @@ function renderHead() {
       <p class="storage-desc">${escapeHtml(area.description || `${area.name} 的存放內容。`)}</p>
     </div>
     <div class="storage-actions">
+      ${isDebugMode() ? `<button class="btn btn-ghost" id="export-dm-btn" type="button"><span class="ico-svg" style="width:15px;height:15px;--icon-url:url('../images/icons/clipboard.svg')" aria-hidden="true"></span>輸出 Data Matrix</button>` : ""}
       <button class="btn btn-primary" id="add-item-btn"><span class="ico-svg" style="width:15px;height:15px;--icon-url:url('../images/icons/plus.svg')" aria-hidden="true"></span>新增物品</button>
     </div>
   `;
@@ -102,6 +105,7 @@ function renderHead() {
       onSaved: () => refreshItems(),
     });
   });
+  host.querySelector("#export-dm-btn")?.addEventListener("click", (event) => exportDataMatrixPdf(event.currentTarget));
 }
 
 function wireToolbar() {
@@ -136,7 +140,7 @@ async function handleQuantityAction(btn, item) {
   const delta = btn.dataset.action === "quantity-increase" ? 1 : -1;
   btn.disabled = true;
   try {
-    await adjustItemQuantity(item.id, delta);
+    await adjustItemQuantity(item.id, delta, item);
     notify.success(`${item.category === "tool" ? (delta > 0 ? "已歸還" : "已使用") : (delta > 0 ? "已補充" : "已取用")}「${item.name}」`);
     await refreshItems();
   } catch (err) {
@@ -222,7 +226,7 @@ async function handleDelete(item) {
   });
   if (!ok) return;
   try {
-    await deleteItem(item.id);
+    await deleteItem(item.id, item);
     notify.success("已刪除物品");
     await refreshItems();
   } catch (err) {
@@ -253,6 +257,108 @@ function maybeHighlight() {
       document.querySelectorAll(".highlight").forEach((n) => n.classList.remove("highlight"));
     }, 5000);
   }, 50);
+}
+
+/* ---------- 除錯模式：輸出工具 Data Matrix 標籤 PDF ---------- */
+
+let exportingDm = false;
+
+async function exportDataMatrixPdf(button) {
+  if (exportingDm) return;
+  const structure = state.structure;
+  const tools = state.items.filter((item) => item.category === "tool");
+
+  // 依櫃子目前的位置顯示順序分組；每組內依名稱排序；標籤份數 = 總數量。
+  const groups = [];
+  const seen = new Set();
+  for (const section of structure.sections || []) {
+    const inSection = sortByName(tools.filter((tool) => tool.sectionId === section.id));
+    const labels = [];
+    for (const tool of inSection) {
+      seen.add(tool.id);
+      const total = Math.max(0, Math.floor(Number(tool.totalQuantity ?? tool.quantity) || 0));
+      if (total > 0) labels.push({ id: tool.id, count: total });
+    }
+    if (labels.length) groups.push({ name: section.name, labels });
+  }
+  // 未對應任何 section 的工具（保險）歸到「其他位置」。
+  const orphanTools = sortByName(tools.filter((tool) => !seen.has(tool.id)));
+  const orphanLabels = [];
+  for (const tool of orphanTools) {
+    const total = Math.max(0, Math.floor(Number(tool.totalQuantity ?? tool.quantity) || 0));
+    if (total > 0) orphanLabels.push({ id: tool.id, count: total });
+  }
+  if (orphanLabels.length) groups.push({ name: "其他位置", labels: orphanLabels });
+
+  const totalLabels = groups.reduce((sum, g) => sum + g.labels.reduce((s, l) => s + l.count, 0), 0);
+  if (!totalLabels) {
+    notify.warning("此櫃子沒有可輸出的工具（工具總數量為 0）。");
+    return;
+  }
+
+  exportingDm = true;
+  if (button) { button.disabled = true; button.dataset.label = button.textContent; button.textContent = "產生中…"; }
+  try {
+    // 每個不同的 id 只編碼一次，重複使用同一段 SVG。
+    const uniqueIds = [...new Set(groups.flatMap((g) => g.labels.map((l) => l.id)))];
+    const svgById = new Map();
+    for (const id of uniqueIds) svgById.set(id, await encodeDataMatrixSvg(id));
+
+    const groupsHtml = groups.map((group) => {
+      const cells = group.labels.map((label) => {
+        const svg = svgById.get(label.id);
+        return Array.from({ length: label.count }, () => `<div class="dm-cell">${svg}</div>`).join("");
+      }).join("");
+      return `<section class="dm-group">
+        <div class="dm-caption">${escapeHtml(group.name)}</div>
+        <div class="dm-grid">${cells}</div>
+      </section>`;
+    }).join("");
+
+    const popup = window.open("", "_blank");
+    if (!popup) {
+      notify.warning("瀏覽器阻擋了列印視窗，請允許此網站開啟彈出式視窗。");
+      return;
+    }
+    popup.opener = null;
+    popup.document.open();
+    popup.document.write(`<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8">
+      <title>${escapeHtml(state.area.name)}－工具 Data Matrix 標籤</title>
+      <style>
+        @page { size: A4 portrait; margin: 10mm; }
+        * { box-sizing: border-box; }
+        body { margin: 0; color: #111; font: 10pt/1.4 "Noto Sans TC", Arial, sans-serif; }
+        h1 { font-size: 12pt; margin: 0 0 4mm; }
+        .dm-group { break-inside: auto; }
+        .dm-group + .dm-group {
+          margin-top: 4mm; padding-top: 4mm;
+          border-top: 0.4mm dashed #444;   /* 群組間可剪裁分隔線 */
+        }
+        .dm-caption { font-size: 8.5pt; color: #444; margin: 0 0 2mm; }
+        .dm-grid { display: flex; flex-wrap: wrap; gap: 2mm; }         /* 2mm 間距即靜區，一致排列 */
+        .dm-cell {
+          width: 10mm; height: 10mm; flex: 0 0 auto;   /* 實際列印固定 1cm × 1cm */
+          break-inside: avoid; page-break-inside: avoid;
+        }
+        .dm-cell svg { display: block; width: 10mm; height: 10mm; }
+        @media screen { body { background:#f4f4f4; } .sheet { background:#fff; max-width:210mm; margin:0 auto; padding:10mm; } }
+      </style></head><body><div class="sheet">
+        <h1>${escapeHtml(state.area.name)}｜工具 Data Matrix 標籤</h1>
+        ${groupsHtml}
+      </div><script>
+        const printNow = () => setTimeout(() => { window.focus(); window.print(); }, 200);
+        if (document.readyState === "complete") printNow();
+        else window.addEventListener("load", printNow);
+      <\/script></body></html>`);
+    popup.document.close();
+    notify.success(`已產生 ${totalLabels} 個標籤，請於列印對話框選擇「另存為 PDF」。`);
+  } catch (err) {
+    console.error(err);
+    notify.danger("輸出失敗：" + (err.message || "未知錯誤"));
+  } finally {
+    exportingDm = false;
+    if (button) { button.disabled = false; if (button.dataset.label) button.textContent = button.dataset.label; }
+  }
 }
 
 function renderError(title, msg) {

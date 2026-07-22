@@ -9,11 +9,12 @@ import { initLabels, categoryTag, makeBadge } from "../ui/labels.js";
 import { getItems, getWorkshopMap, getStructures } from "../services/data-service.js";
 import { buildLocationIndex } from "../utils/search.js";
 import {
-  getUsageBoxes, createUsageBox, boxTransferItem, boxTakeItems, closeUsageBox, deleteUsageBox,
+  getUsageBoxes, createUsageBox, boxTransferItem, boxTakeItems, deleteUsageBox,
   getPrepOrders, createPrepOrder, updatePrepOrder, executePrepOrder, deletePrepOrder,
 } from "../services/ops-service.js";
 import { getAuthorizedUserOptions } from "../services/user-service.js";
 import { openModal, closeModal, confirmModal } from "../ui/modal.js";
+import { createDataMatrixScanner } from "../ui/datamatrix.js";
 import { notify } from "../ui/notifications.js";
 import { firestoreErrorMessage } from "../services/auth-service.js";
 
@@ -171,6 +172,7 @@ function renderBoxes() {
 function renderBoxCard(box) {
   const statusDef = BOX_STATUS[box.status] || BOX_STATUS.active;
   const entries = sortByName(box.items || [], (entry) => entry.name);
+  const hasUnreturnedTools = boxHasUnreturnedTools(box);
   const canManage = canManageBox(box);
   const card = el("article", { class: "ops-card usage-box-card", "data-box-id": box.id });
   card.tabIndex = 0;
@@ -213,11 +215,8 @@ function renderBoxCard(box) {
   if (box.status === "active") {
     actions.appendChild(el("button", { class: "btn btn-primary btn-sm", type: "button", "data-action": "take" },
       el("span", { html: icon("plus", { size: "14px" }) }), "取用物品"));
-    if (!entries.length && canManage) {
-      actions.appendChild(el("button", { class: "btn btn-ghost btn-sm", type: "button", "data-action": "close-box" }, "標記結束"));
-    }
   }
-  if (!entries.length && canManage) {
+  if (!hasUnreturnedTools && canManage) {
     actions.appendChild(el("button", { class: "btn btn-danger btn-sm", type: "button", "data-action": "delete-box" }, "刪除"));
   }
   card.appendChild(actions);
@@ -239,6 +238,11 @@ function canManageBox(box) {
   if (!session) return false;
   if (session.role === "admin") return true;
   return Boolean(box.createdByUid && box.createdByUid === session.user?.uid);
+}
+
+function boxHasUnreturnedTools(box) {
+  return (box.items || []).some((entry) =>
+    entry.category === "tool" && (Number(entry.quantity) || 0) > 0);
 }
 
 function openBoxView(box) {
@@ -283,6 +287,11 @@ function openBoxView(box) {
       class: "btn btn-primary", type: "button", onclick: () => openTakeModal(box),
     }, el("span", { html: icon("plus", { size: "14px" }) }), "取用物品"));
   }
+  if (!boxHasUnreturnedTools(box) && canManageBox(box)) {
+    footer.appendChild(el("button", {
+      class: "btn btn-danger", type: "button", onclick: () => handleDeleteBox(box),
+    }, "刪除"));
+  }
   openModal({ title: "盒子內容", body, footer, maxWidth: "760px", className: "usage-box-modal" });
 }
 
@@ -301,8 +310,7 @@ function wireBoxDelegation() {
       const entryRow = event.target.closest("[data-entry-item-id]");
       const entry = (box.items || []).find((candidate) => candidate.itemId === entryRow?.dataset.entryItemId);
       if (entry) openReturnModal(box, entry);
-    } else if (button.dataset.action === "close-box") handleCloseBox(box);
-    else if (button.dataset.action === "delete-box") handleDeleteBox(box);
+    } else if (button.dataset.action === "delete-box") handleDeleteBox(box);
   });
 }
 
@@ -396,9 +404,23 @@ function openTakeModal(box) {
   const cart = new Map();
   const body = el("div", { class: "take-modal" });
   body.innerHTML = `
-    <div class="field">
-      <label for="take-search">搜尋工具或材料（點一下加入清單）</label>
-      <input id="take-search" type="search" placeholder="輸入名稱、標籤…" autocomplete="off">
+    <div class="take-tools">
+      <div class="field" style="flex:1; margin:0">
+        <label for="take-search">搜尋工具或材料（點一下加入清單）</label>
+        <input id="take-search" type="search" placeholder="輸入名稱、標籤…" autocomplete="off">
+      </div>
+      <button type="button" class="take-scan-btn" id="take-scan-btn" aria-label="開啟相機掃描" title="開啟相機掃描">
+        <svg class="scan-ico-on" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+        <svg class="scan-ico-off" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 1l22 22"/><path d="M21 21H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h3m4-3h6l2 3h4a2 2 0 0 1 2 2v9"/></svg>
+      </button>
+    </div>
+    <div class="take-scan-region" id="take-scan-region" hidden>
+      <video id="take-scan-video" playsinline muted></video>
+      <div class="take-scan-status" id="take-scan-status">啟動相機中…</div>
+      <div class="take-scan-success" id="take-scan-success" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m8 12 2.5 2.5L16 9"/></svg>
+        <span id="take-scan-success-text"></span>
+      </div>
     </div>
     <div class="take-candidates" id="take-candidates" role="listbox" aria-label="可取用的品項"></div>
     <div class="take-cart-title card-title" style="margin:14px 0 8px">待取用清單（<span id="take-cart-count">0</span>）</div>
@@ -408,6 +430,12 @@ function openTakeModal(box) {
   const candidatesHost = body.querySelector("#take-candidates");
   const cartHost = body.querySelector("#take-cart");
   const cartCount = body.querySelector("#take-cart-count");
+  const scanBtn = body.querySelector("#take-scan-btn");
+  const scanRegion = body.querySelector("#take-scan-region");
+  const scanVideo = body.querySelector("#take-scan-video");
+  const scanStatus = body.querySelector("#take-scan-status");
+  const scanSuccess = body.querySelector("#take-scan-success");
+  const scanSuccessText = body.querySelector("#take-scan-success-text");
 
   function availFor(item) { return Number(item.quantity) || 0; }
 
@@ -482,15 +510,139 @@ function openTakeModal(box) {
     }
   }
 
-  searchInput.addEventListener("input", renderCandidates);
+  searchInput.addEventListener("input", () => {
+    // 一開始輸入搜尋內容就切回手動模式，並立即釋放相機。
+    if (scanner || starting) stopScan();
+    renderCandidates();
+  });
   renderCandidates();
   renderCart();
+
+  /* ---------- 相機掃描 Data Matrix ---------- */
+  let scanner = null;
+  let starting = false;
+  let scanGeneration = 0;
+  let successTimer = null;
+  let successStatusTimer = null;
+  const lastScan = { text: null, time: 0 };
+
+  function setScanStatus(text, kind = "") {
+    if (kind !== "ok" && successStatusTimer) {
+      clearTimeout(successStatusTimer);
+      successStatusTimer = null;
+    }
+    scanStatus.textContent = text;
+    scanStatus.className = "take-scan-status" + (kind ? ` is-${kind}` : "");
+  }
+
+  function handleScan(text) {
+    const now = Date.now();
+    const id = String(text || "").trim();
+    // 同一條碼連續出現在畫面只算一次；持續可見時滑動視窗，離開畫面 2.5 秒後才能再加。
+    if (id && id === lastScan.text && now - lastScan.time < 2500) { lastScan.time = now; return; }
+    lastScan.text = id; lastScan.time = now;
+    if (!id) { setScanStatus("條碼內容為空，無法辨識", "warn"); return; }
+
+    const item = state.items.find((candidate) => candidate.id === id);
+    if (!item) { setScanStatus(`找不到對應物品（ID：${id}）`, "warn"); notify.warning(`找不到對應物品（ID：${id}）`); return; }
+    if (item.category !== "tool") { setScanStatus(`「${item.name}」不是工具，無法取用`, "warn"); notify.warning(`「${item.name}」不是工具，無法取用`); return; }
+    if (!isToolTakable(item)) { setScanStatus(`「${item.name}」為特殊狀態，無法取用`, "warn"); notify.warning(`「${item.name}」為特殊狀態，無法取用`); return; }
+    const avail = availFor(item);
+    const inCart = cart.get(item.id)?.quantity || 0;
+    if (avail <= 0) { setScanStatus(`「${item.name}」目前沒有可用數量`, "warn"); notify.warning(`「${item.name}」目前沒有可用數量`); return; }
+    if (inCart + 1 > avail) { setScanStatus(`「${item.name}」已達可用上限（${avail}）`, "warn"); notify.warning(`「${item.name}」已達可用上限（${avail}）`); return; }
+
+    addToCart(item);                       // +1，並受可用量限制
+    const qty = cart.get(item.id)?.quantity || 1;
+    setScanStatus(`已加入：${item.name} ×${qty}`, "ok");
+    flashSuccess(`${item.name} ×${qty}`);
+  }
+
+  // 掃描成功回饋：綠色勾勾疊層 + 邊框脈衝 +（若支援）震動。
+  function flashSuccess(text) {
+    scanSuccessText.textContent = text;
+    scanRegion.classList.remove("flash");
+    scanSuccess.classList.remove("show");
+    void scanRegion.offsetWidth;
+    scanRegion.classList.add("flash");
+    scanSuccess.classList.add("show");
+    try { navigator.vibrate?.(60); } catch { /* ignore */ }
+    if (successTimer) clearTimeout(successTimer);
+    successTimer = setTimeout(() => scanSuccess.classList.remove("show"), 900);
+    if (successStatusTimer) clearTimeout(successStatusTimer);
+    successStatusTimer = setTimeout(() => {
+      if (scanner) setScanStatus("將工具上的條碼對準框內");
+    }, 2000);
+  }
+
+  async function startScan() {
+    if (scanner || starting) return;
+    const generation = ++scanGeneration;
+    starting = true;
+    scanRegion.hidden = false;
+    // 相機開啟時收起手動搜尋結果清單，讓取景畫面有更多空間。
+    candidatesHost.hidden = true;
+    setScanStatus("啟動相機中…");
+    scanBtn.classList.add("is-active");
+    scanBtn.setAttribute("aria-label", "關閉相機");
+    scanBtn.title = "關閉相機";
+    try {
+      const nextScanner = await createDataMatrixScanner(scanVideo, handleScan, (err) => {
+        console.error(err);
+        setScanStatus("相機發生問題，可改用手動搜尋。", "warn");
+      });
+      // 使用者可能在相機啟動期間開始打字；過期的相機不得重新開啟介面。
+      if (generation !== scanGeneration) {
+        try { nextScanner.stop(); } catch { /* ignore */ }
+        return;
+      }
+      scanner = nextScanner;
+      setScanStatus("將工具上的條碼對準框內");
+    } catch (err) {
+      if (generation !== scanGeneration) return;
+      console.error(err);
+      const name = err?.name || "";
+      let message = "無法啟動相機，請改用手動搜尋。";
+      if (name === "NotAllowedError" || name === "SecurityError") message = "相機權限遭拒，請於瀏覽器允許相機後再試，或改用手動搜尋。";
+      else if (name === "NotFoundError" || name === "OverconstrainedError") message = "找不到可用的相機，請改用手動搜尋。";
+      else if (err?.message) message = err.message;
+      notify.warning(message);
+      stopScan();
+    } finally {
+      if (generation === scanGeneration) starting = false;
+    }
+  }
+
+  function stopScan() {
+    scanGeneration += 1;
+    starting = false;
+    try { scanner?.stop(); } catch { /* ignore */ }
+    scanner = null;
+    if (successTimer) clearTimeout(successTimer);
+    if (successStatusTimer) clearTimeout(successStatusTimer);
+    successTimer = null;
+    successStatusTimer = null;
+    scanRegion.hidden = true;
+    scanRegion.classList.remove("flash");
+    scanSuccess.classList.remove("show");
+    candidatesHost.hidden = false;   // 還原手動搜尋結果清單
+    scanBtn.classList.remove("is-active");
+    scanBtn.setAttribute("aria-label", "開啟相機掃描");
+    scanBtn.title = "開啟相機掃描";
+  }
+
+  scanBtn.addEventListener("click", () => { if (scanner || starting) stopScan(); else startScan(); });
 
   const footer = el("div", { style: "display:flex; gap:10px" });
   const cancel = el("button", { type: "button", class: "btn btn-ghost" }, "取消");
   const confirm = el("button", { type: "button", class: "btn btn-primary" }, "全部放入盒子");
   footer.append(cancel, confirm);
-  openModal({ title: `取用物品 → ${box.userName || "使用者"}`, body, footer, maxWidth: "560px" });
+  // 關閉 Modal（含 Esc／點背景／提交）時務必停止相機並釋放資源。
+  const { overlay } = openModal({ title: `取用物品 → ${box.userName || "使用者"}`, body, footer, maxWidth: "560px", onClose: () => stopScan() });
+  overlay.querySelector(".modal")?.classList.add("take-items-modal");
+  startScan();
+  // 避免 modal 的預設輸入框焦點在手機上直接叫出鍵盤；仍可隨時點搜尋欄切回手動模式。
+  requestAnimationFrame(() => scanBtn.focus());
   cancel.addEventListener("click", () => closeModal());
 
   confirm.addEventListener("click", async () => {
@@ -557,29 +709,11 @@ function openReturnModal(box, entry) {
   });
 }
 
-async function handleCloseBox(box) {
-  const confirmed = await confirmModal({
-    title: "標記盒子結束",
-    message: `確定將「${escapeHtml(box.userName || "使用者")}」的盒子標記為已結束嗎？`,
-    detail: "已結束的盒子無法再取用或歸還物品。",
-    confirmText: "標記結束",
-  });
-  if (!confirmed) return;
-  try {
-    await closeUsageBox(box.id);
-    notify.success("已標記為結束");
-    await refreshOps({ orders: false, items: false });
-  } catch (err) {
-    console.error(err);
-    notify.danger(errorText(err));
-  }
-}
-
 async function handleDeleteBox(box) {
   const confirmed = await confirmModal({
     title: "刪除盒子",
     message: `確定刪除「${escapeHtml(box.userName || "使用者")}」的盒子嗎？`,
-    detail: "只能刪除空盒子；歷史紀錄（Log）不會被刪除。此操作無法復原。",
+    detail: "所有工具必須先歸還；材料不必歸還。歷史紀錄（Log）不會被刪除，此操作無法復原。",
     confirmText: "刪除", danger: true,
   });
   if (!confirmed) return;

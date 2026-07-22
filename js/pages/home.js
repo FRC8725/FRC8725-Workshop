@@ -35,6 +35,7 @@ export async function mountPage({ routeTo }) {
   state = {
     items: [], areas: [], structures: [], index: null,
     plans: [], planId: null,
+    areaPlanIds: new Map(),
     filter: "all", query: "", summaryStats: [],
     summaryFilter: null,
     sortField: "name", sortDir: "asc",
@@ -62,6 +63,11 @@ async function loadAll() {
     state.plans = plans;
     state.structures = structures;
     state.summaryStats = summaryStats;
+    const planData = await Promise.all(plans.map((plan) => getFloorPlanData(plan)));
+    state.areaPlanIds = new Map();
+    plans.forEach((plan, index) => {
+      for (const area of planData[index].areas || []) state.areaPlanIds.set(area.id, plan.id);
+    });
     // 位置索引用「所有平面圖區域的聯集」，跨平面圖的品項名稱也能正確顯示。
     state.index = buildLocationIndex(allAreas, state.structures);
 
@@ -435,7 +441,7 @@ function wireResultsDelegation() {
       const delta = btn.dataset.action === "quantity-increase" ? 1 : -1;
       btn.disabled = true;
       try {
-        await adjustItemQuantity(item.id, delta);
+        await adjustItemQuantity(item.id, delta, item);
         notify.success(`${item.category === "tool" ? (delta > 0 ? "已歸還" : "已使用") : (delta > 0 ? "已補充" : "已取用")}「${item.name}」`);
         await refreshData();
       } catch (err) {
@@ -459,18 +465,29 @@ function wireResultsDelegation() {
     if (item) openLocation(item);
   });
 
-  // Hover / focus → highlight the matching hotspot on the map (bidirectional link)
+  // Hover / focus → highlight the owning plan tab when the item is on another
+  // plan; otherwise highlight its cabinet on the currently visible map.
+  const setLocationHighlight = (storageId, active) => {
+    const planId = state.areaPlanIds.get(storageId);
+    if (planId && planId !== state.planId) {
+      const tab = document.querySelector(`.plan-tab[data-plan-id="${CSS.escape(planId)}"]`);
+      tab?.classList.toggle("is-search-highlighted", active);
+      return;
+    }
+    if (active) setSearchHighlight(storageId);
+    else clearSearchHighlight(storageId);
+  };
   const onEnter = (e) => {
     const wrap = e.target.closest("[data-storage-id]");
     if (!wrap || !host.contains(wrap)) return;
     if (e.relatedTarget && wrap.contains(e.relatedTarget)) return; // moving within same item
-    if (wrap.dataset.storageId) setSearchHighlight(wrap.dataset.storageId);
+    if (wrap.dataset.storageId) setLocationHighlight(wrap.dataset.storageId, true);
   };
   const onLeave = (e) => {
     const wrap = e.target.closest("[data-storage-id]");
     if (!wrap || !host.contains(wrap)) return;
     if (e.relatedTarget && wrap.contains(e.relatedTarget)) return; // still within same item
-    if (wrap.dataset.storageId) clearSearchHighlight(wrap.dataset.storageId);
+    if (wrap.dataset.storageId) setLocationHighlight(wrap.dataset.storageId, false);
   };
   host.addEventListener("mouseover", onEnter);
   host.addEventListener("mouseout", onLeave);

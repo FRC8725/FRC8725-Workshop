@@ -58,8 +58,8 @@ function cacheMetaRef() {
   return sdk.doc(db, CACHE_META);
 }
 
-function writeItemsVersion(writer) {
-  const version = nextVersionId();
+function writeItemsVersion(writer, requestedVersion = "") {
+  const version = requestedVersion || nextVersionId();
   writer.set(cacheMetaRef(), { items: version, updatedAt: sdk.serverTimestamp() }, { merge: true });
   return version;
 }
@@ -151,7 +151,7 @@ export async function fbGetItemById(itemId) {
   return snap.exists() ? mapDoc(snap) : null;
 }
 
-export async function fbCreateItem(itemData) {
+export async function fbCreateItem(itemData, { itemId = "", version = "" } = {}) {
   await initFirebase();
   const payload = {
     ...itemData,
@@ -159,30 +159,35 @@ export async function fbCreateItem(itemData) {
     updatedAt: sdk.serverTimestamp(),
   };
   delete payload.id;
-  const ref = sdk.doc(sdk.collection(db, COLLECTION));
+  // Accept a client-generated id/version so data-service can update its local
+  // snapshot first and commit that exact optimistic revision without a
+  // follow-up version read.
+  const ref = itemId
+    ? sdk.doc(db, COLLECTION, itemId)
+    : sdk.doc(sdk.collection(db, COLLECTION));
   const batch = sdk.writeBatch(db);
   batch.set(ref, payload);
-  const version = writeItemsVersion(batch);
+  const committedVersion = writeItemsVersion(batch, version);
   await batch.commit();
-  rememberItemsVersion(version);
+  rememberItemsVersion(committedVersion);
   return { ...itemData, id: ref.id };
 }
 
-export async function fbUpdateItem(itemId, updates) {
+export async function fbUpdateItem(itemId, updates, { version = "" } = {}) {
   await initFirebase();
   const ref = sdk.doc(db, COLLECTION, itemId);
   const payload = { ...updates, updatedAt: sdk.serverTimestamp() };
   delete payload.id;
   const batch = sdk.writeBatch(db);
   batch.update(ref, payload);
-  const version = writeItemsVersion(batch);
+  const committedVersion = writeItemsVersion(batch, version);
   await batch.commit();
-  rememberItemsVersion(version);
+  rememberItemsVersion(committedVersion);
   return { ...updates, id: itemId };
 }
 
 /** Atomically adjust quantity (quick 使用／歸還 buttons). Also syncs tool status. */
-export async function fbAdjustItemQuantity(itemId, delta) {
+export async function fbAdjustItemQuantity(itemId, delta, { version = "" } = {}) {
   await initFirebase();
   if (delta !== 1 && delta !== -1) throw new Error("數量調整值必須是 1 或 -1");
   const actor = requireActor();
@@ -201,7 +206,7 @@ export async function fbAdjustItemQuantity(itemId, delta) {
       throw err;
     }
     transaction.update(ref, { quantity: result.quantity, status: result.status, updatedAt: sdk.serverTimestamp() });
-    committedVersion = writeItemsVersion(transaction);
+    committedVersion = writeItemsVersion(transaction, version);
     return { ...item, quantity: result.quantity, status: result.status };
   });
   rememberItemsVersion(committedVersion);
@@ -221,13 +226,13 @@ export async function fbAdjustItemQuantity(itemId, delta) {
   return updated;
 }
 
-export async function fbDeleteItem(itemId) {
+export async function fbDeleteItem(itemId, { version = "" } = {}) {
   await initFirebase();
   const batch = sdk.writeBatch(db);
   batch.delete(sdk.doc(db, COLLECTION, itemId));
-  const version = writeItemsVersion(batch);
+  const committedVersion = writeItemsVersion(batch, version);
   await batch.commit();
-  rememberItemsVersion(version);
+  rememberItemsVersion(committedVersion);
   return true;
 }
 
@@ -398,7 +403,7 @@ export async function fbBoxTakeItems({ boxId, entries }) {
   return resultValue;
 }
 
-/** 標記盒子已結束（僅限已無未歸還品項）。 */
+/** 標記盒子已結束（僅要求所有工具皆已歸還；材料可留在盒內）。 */
 export async function fbCloseUsageBox(boxId) {
   await initFirebase();
   requireActor();
@@ -407,15 +412,17 @@ export async function fbCloseUsageBox(boxId) {
     const snap = await transaction.get(ref);
     if (!snap.exists()) throw Object.assign(new Error("找不到盒子"), { code: "not-found" });
     const box = snap.data();
-    if ((box.items || []).length > 0) {
-      throw Object.assign(new Error("盒內仍有未歸還品項，無法標記結束"), { code: "box-not-empty" });
+    const hasUnreturnedTools = (box.items || []).some((entry) =>
+      entry.category === "tool" && (Number(entry.quantity) || 0) > 0);
+    if (hasUnreturnedTools) {
+      throw Object.assign(new Error("盒內仍有未歸還工具，無法標記結束"), { code: "box-not-empty" });
     }
     transaction.update(ref, { status: "closed", updatedAt: sdk.serverTimestamp() });
     return true;
   });
 }
 
-/** 刪除盒子（僅限空盒；歷史 log 不受影響）。 */
+/** 刪除盒子（僅要求所有工具皆已歸還；材料可視為已消耗，歷史 log 不受影響）。 */
 export async function fbDeleteUsageBox(boxId) {
   await initFirebase();
   requireActor();
@@ -423,8 +430,10 @@ export async function fbDeleteUsageBox(boxId) {
   return sdk.runTransaction(db, async (transaction) => {
     const snap = await transaction.get(ref);
     if (!snap.exists()) return true;
-    if ((snap.data().items || []).length > 0) {
-      throw Object.assign(new Error("盒內仍有品項，只能刪除空盒子"), { code: "box-not-empty" });
+    const hasUnreturnedTools = (snap.data().items || []).some((entry) =>
+      entry.category === "tool" && (Number(entry.quantity) || 0) > 0);
+    if (hasUnreturnedTools) {
+      throw Object.assign(new Error("盒內仍有未歸還工具，無法刪除盒子"), { code: "box-not-empty" });
     }
     transaction.delete(ref);
     return true;
