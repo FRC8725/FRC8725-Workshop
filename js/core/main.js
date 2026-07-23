@@ -8,6 +8,14 @@ import { isDemoMode, buildDemoSession } from "./demo-mode.js";
 
 initSidebarToggle();
 
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("service-worker.js").catch((error) => {
+      console.warn("Service worker 註冊失敗：", error);
+    });
+  });
+}
+
 const outlet = document.getElementById("page-outlet");
 let authRevision = 0;
 

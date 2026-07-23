@@ -1,0 +1,41 @@
+{
+  "name": "Team 8725 培訓室工具與材料管理系統",
+  "short_name": "8725 Workshop",
+  "description": "查詢及管理培訓室中的工具、材料、存放位置、使用狀態與數量。",
+  "id": "./",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone"],
+  "orientation": "any",
+  "background_color": "#121212",
+  "theme_color": "#c6543d",
+  "lang": "zh-Hant",
+  "dir": "ltr",
+  "categories": ["productivity", "utilities"],
+  "icons": [
+    { "src": "images/icons/pwa/icon-72x72.png", "sizes": "72x72", "type": "image/png", "purpose": "any" },
+    { "src": "images/icons/pwa/icon-96x96.png", "sizes": "96x96", "type": "image/png", "purpose": "any" },
+    { "src": "images/icons/pwa/icon-128x128.png", "sizes": "128x128", "type": "image/png", "purpose": "any" },
+    { "src": "images/icons/pwa/icon-144x144.png", "sizes": "144x144", "type": "image/png", "purpose": "any" },
+    { "src": "images/icons/pwa/icon-152x152.png", "sizes": "152x152", "type": "image/png", "purpose": "any" },
+    { "src": "images/icons/pwa/icon-192x192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "images/icons/pwa/icon-384x384.png", "sizes": "384x384", "type": "image/png", "purpose": "any" },
+    { "src": "images/icons/pwa/icon-512x512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "images/icons/pwa/maskable-icon-512x512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    {
+      "name": "平面圖總覽",
+      "short_name": "總覽",
+      "url": "./index.html#/home",
+      "icons": [{ "src": "images/icons/pwa/icon-96x96.png", "sizes": "96x96", "type": "image/png" }]
+    },
+    {
+      "name": "作業",
+      "short_name": "作業",
+      "url": "./index.html#/ops",
+      "icons": [{ "src": "images/icons/pwa/icon-96x96.png", "sizes": "96x96", "type": "image/png" }]
+    }
+  ]
+}
